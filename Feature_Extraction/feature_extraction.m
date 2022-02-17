@@ -8,13 +8,13 @@ Ts = Ts.*dt;
 f0 = Sample_rate/N; %frequency per sample
 
 
-%Viewing the raw EEG data 
+%% Viewing the raw EEG data 
  figure
  plot(eeg_sample) 
  title('EEG data raw')
  xlabel('Samples'), ylabel('Magnitude'), grid on 
 
- %Viewing the time scale versus the raw EEG data 
+ %% Viewing the time scale versus the raw EEG data 
  figure
  plot(Ts, eeg_sample) 
  title('Time versus EEG data raw')
@@ -22,7 +22,8 @@ f0 = Sample_rate/N; %frequency per sample
 
 
  EEGf = fft(eeg_sample); %transforming to frequency domain
- %Viewing the frequency domain data
+ 
+ %% Viewing the frequency domain data
  figure
  plot(f0*(0:N-1),abs(EEGf)) %f0 is 0.2 per sample and it is same for each. You are plotting freq for all samples
  title('Frequency spectrum of the Raw EEG signal')
@@ -34,7 +35,8 @@ cb=0.2;
 ca=50;
 [b,a] = butter(4,[cb*2/Sample_rate ca*2/Sample_rate]);
 EEG_BW = filter(b,a,eeg_sample);%applying butter worth filter
-%Plotting the frequency spectrum of the filtered data
+
+%% Plotting the frequency spectrum of the filtered data
 EEG_BWf=fft(EEG_BW);
 figure
 plot(f0*(0:N-1),abs(EEG_BWf))
@@ -46,7 +48,7 @@ EEG_BWf = real(EEG_BWf);
 
 
 
-% WINDOWING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% WINDOWING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 L=250;
 SV=round(L/2); %50 perc overlap
@@ -55,12 +57,28 @@ EEG = EEG_BW;
 Tms = N*dt*1000;
 W=floor(Tms/(L-SV));
 
-EEG_AVG= zeros(W,32);
-EEG_STD = zeros(W,32);
-EEG_MAV= zeros(W,32);
-EEG_RMS= zeros(W,32);
-EEG_SKW= zeros(W,32);
-EEG_KUR= zeros(W,32);
+%% Seperate the Frequency Bands
+
+
+
+%% Feature Extraction
+
+EEG_AVG= zeros(W,32); % Average
+EEG_STD= zeros(W,32); % Standard Deviation
+EEG_MAV= zeros(W,32); % Mean Absolute Value
+EEG_RMS= zeros(W,32); % Root Mean Square
+EEG_SKW= zeros(W,32); % Skewness
+EEG_KUR= zeros(W,32); % Kurtosis
+EEG_HAC= zeros(W,32); % Hjorth Activity
+EEG_HMB= zeros(W,32); % Hjorth Mobility
+EEG_HCP= zeros(W,32); % Hjorth Complexity
+EEG_SHE= zeros(W,32); % Shannon's Entropy
+EEG_PSD= zeros(W,32); % Power Spectral Density
+EEG_SPE= zeros(W,32); % Spectral Entropy
+EEG_AUR= zeros(W,32); % Autoregression
+EEG_COR= zeros(W,32); % Coherence 
+EEG_CCR= zeros(W,32); % Cross-correlation 
+EEG_ABP= zeros(W,32); % Average Band Power
 
 Start=1;
 End=L;
@@ -75,11 +93,15 @@ for i = 1:W
     EEG_RMS(i,:) = rms(EEG(Start:End,:));
     EEG_SKW(i,:) = skewness(EEG(Start:End,:));
     EEG_KUR(i,:) = kurtosis(EEG(Start:End,:));
+    [EEG_HMB(i,:), EEG_HCP(i,:)] = HjorthParameters(EEG(Start:End, :));
+    %EEG_HAC = ;
+
+
     Start=Start+SV;
     End=End+SV;
 end
 
-% NORMALIZE %%%%%%%%
+%% NORMALIZE %%%%%%%%
 EEG_AVG=EEG_AVG./max(EEG_AVG);
 EEG_STD=EEG_STD./max(EEG_STD);
 EEG_MAV=EEG_MAV./max(EEG_MAV);
