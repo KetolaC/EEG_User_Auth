@@ -1,52 +1,83 @@
-clear all;
-eeg_sample = readmatrix('HS_P7_S1_EEG.csv');
+%% Load in ll the raw EEG data and variables
+
 Sample_rate = 500; %sampling frequency of the original data
 dt = 1/Sample_rate; %time per sample 
-N = 307632; %number of samples per channel
-Ts = 0:N-1; %interval created or the time axis
-Ts = Ts.*dt;
-f0 = Sample_rate/N; %frequency per sample
 
+for n = 1:1:12
+    for h = 1:1:9 %Get session 1 through 9 for participant
+        g = "HS_P" + n + "_S" + h +".csv" %Make a csv file output name
+        eeg_data{n, h} = readmatrix(g); % Create a row vector for each participant
+        N(n, h) = length(eeg_data{n, h}); %number of samples per channel
+        f0(n, h) = Sample_rate/N(n, h); %frequency per sample
+    end 
+end 
 
-%% Viewing the raw EEG data 
- figure
- plot(eeg_sample) 
- title('EEG data raw')
- xlabel('Samples'), ylabel('Magnitude'), grid on 
-
- %% Viewing the time scale versus the raw EEG data 
- figure
- plot(Ts, eeg_sample) 
- title('Time versus EEG data raw')
- xlabel('Time(s)'), ylabel('Magnitude'), grid on 
-
-
- EEGf = fft(eeg_sample); %transforming to frequency domain
+clearvars n h g 
  
- %% Viewing the frequency domain data
- figure
- plot(f0*(0:N-1),abs(EEGf)) %f0 is 0.2 per sample and it is same for each. You are plotting freq for all samples
- title('Frequency spectrum of the Raw EEG signal')
- xlabel('frequency(Hz)'), ylabel('Energy'), grid on
- %xlim([0 125]);
+%% Create a Butterworth filter for the overall EEG data
 
+cb = 0.2; % High-pass frequency
+ca = 50;  % Low-pass frequency
+[b,a] = butter(4,[cb*2/Sample_rate, ca*2/Sample_rate]);  % Create a Butterworth filter
 
-cb=0.2;
-ca=50;
-[b,a] = butter(4,[cb*2/Sample_rate ca*2/Sample_rate]);
-EEG_BW = filter(b,a,eeg_sample);%applying butter worth filter
+clearvars cb ca 
 
-%% Plotting the frequency spectrum of the filtered data
-EEG_BWf=fft(EEG_BW);
+%% Filter the EEG data 
+
+for n = 1:1:12
+    for h = 1:1:9
+        EEG_BW{n, h} = filter(b,a,eeg_data{n, h});  % Application of Butterworth filter
+        EEG_BWf{n, h} = fft(EEG_BW{n, h}); % Convert to frequency domain 
+    end 
+end
+
+clearvars a b  n h
+%% Plot an instance of filtered EEG data
 figure
-plot(f0*(0:N-1),abs(EEG_BWf))
+plot(f0(1, 1)*(0:N(1, 1)-1),abs(EEG_BWf{1, 1}))
 title('Frequency spectrum of the filtered EEG signal (0.1Hz a 100Hz)')
 xlabel('Frequency(Hz)'),ylabel('Energy'),grid on
 xlim([0 80]);
-EEG_BWf = real(EEG_BWf);
 
+%% Create filters for the five frequency bands 
 
+hp = 0.2; % High-pass frequency
+lp = 4;  % Low-pass frequency
+[db,da] = butter(4,[hp*2/Sample_rate, lp*2/Sample_rate]);  % Delta band filter
 
+hp = 4; % High-pass frequency
+lp = 8;  % Low-pass frequency
+[tb,ta] = butter(4,[hp*2/Sample_rate, lp*2/Sample_rate]);  % Theta band filter
+
+hp = 8; % High-pass frequency
+lp = 12;  % Low-pass frequency
+[ab,aa] = butter(4,[hp*2/Sample_rate, lp*2/Sample_rate]);  % Alpha band filter
+
+hp = 12; % High-pass frequency
+lp = 26;  % Low-pass frequency
+[bb,ba] = butter(4,[hp*2/Sample_rate, lp*2/Sample_rate]);  % Beta band filter
+
+hp = 12; % High-pass frequency
+lp = 26;  % Low-pass frequency
+[gb,ga] = butter(4,[hp*2/Sample_rate, lp*2/Sample_rate]);  % Gamma band filter
+
+clearvars lp hp
+%% Apply frequency band filter on EEG data
+for n = 1:1:12
+    for h = 1:1:9
+        EEG_delta{n, h} = filter(db,da,eeg_data{n, h});  % Extract delta band
+        EEG_theta{n, h} = filter(tb,ta,eeg_data{n, h});  % Extract thata band
+        EEG_alpha{n, h} = filter(ab,aa,eeg_data{n, h});  % Extract alpha band
+        EEG_beta{n, h} = filter(bb,ba,eeg_data{n, h});  % Extract beta band
+        EEG_gamma{n, h} = filter(gb,ga,eeg_data{n, h});  % Extract gamma band
+        %EEG_BWf{n, h} = fft(EEG_BW{n, h}); % Convert to frequency domain 
+    end 
+end
+
+clearvars n h db da ta tb aa ab bb ba ga gb
+
+%% Extract real components
+EEG_BWf{1, 1} = real(EEG_BWf{1, 1}); % Extract the real components of the EEG data
 
 %% WINDOWING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -56,9 +87,6 @@ EEG = EEG_BW;
 %Tms=time*1000;
 Tms = N*dt*1000;
 W=floor(Tms/(L-SV));
-
-%% Seperate the Frequency Bands
-
 
 
 %% Feature Extraction
@@ -111,9 +139,10 @@ EEG_KUR=EEG_KUR./max(EEG_KUR);
 
 FEATS = [ EEG_AVG EEG_STD EEG_MAV EEG_RMS EEG_SKW EEG_KUR];
 
-
  figure
  plot(EEG_AVG(:,3)) 
  title('Features series 1 user 1')
  xlabel('Average'), ylabel('Values'), grid on 
+
+ %% Append to csv 
 
