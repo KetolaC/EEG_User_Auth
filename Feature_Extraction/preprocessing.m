@@ -5,29 +5,28 @@ clc;
 
 %% Load in the raw EEG data and variables
 
+p = 1;                                            % Choose the participant
+
 Fs = 500;                                           % sampling rate
 
-eeg_data = cell(12, 9);
-eeg_spec_data = cell(12, 9);
-N = zeros(12, 9);
-T = zeros(12, 9);
-f0 = zeros(12, 9);
+eeg_data = cell(1, 9);
+eeg_spec_data = cell(1, 9);
+N = zeros(1, 9);
+T = zeros(1, 9);
+f0 = zeros(1, 9);
 
-for n = 1:1:12                                      % Get all 12 participants
-    for h = 1:1:9                                   % Get session 1 through 9 for participant
-        g = "HS_P" + n + "_S" + h +".csv";          % Make a csv file output name
-        eeg_data{n, h} = readmatrix(g);             % Create a cell for each session
-        eeg_spec_data{n, h} = fft(eeg_data{n, h});  % Spectrum data for EEG
-        N(n, h) = length(eeg_data{n, h});           % number of samples per channel
-        T(n, h) = N(n, h)/Fs;                       % The time axis for all data
-        f0(n, h) = Fs/N(n, h);                      % frequency per sample
-    end 
-end 
+for h = 1:1:9                                   % Get session 1 through 9 for participant
+    g = "HS_P" + p + "_S" + h +".csv";          % Make a csv file output name
+    eeg_data{1, h} = readmatrix(g);             % Create a cell for each session
+    eeg_spec_data{1, h} = fft(eeg_data{1, h});  % Spectrum data for EEG
+    N(1, h) = length(eeg_data{1, h});           % number of samples per channel
+    T(1, h) = N(1, h)/Fs;                       % The time axis for all data
+    f0(1, h) = Fs/N(1, h);                      % frequency per sample
+end
 
-ft = 1/Fs;                                          % Seconds per sample
-    
-clearvars n h g
+ft = 1/Fs;                                      % Seconds per sample
 
+clearvars h g
 
 %% Filter the eeg data to 0.1 - 50 Hz
 
@@ -35,21 +34,21 @@ cb = 0.2/(Fs/2);                                    % High-pass frequency adjust
 ca = 50/(Fs/2);                                     % Low-pass frequency adjusted to sampling rate
 [b,a] = butter(4,[cb, ca]);                         % Create a Butterworth filter
 
-clearvars cb ca 
+clearvars cb ca
 
-%% Filter the EEG data 
+%% Filter the EEG data
 
-eeg_filtered = cell(12, 9);
-eeg_spec_filtered = cell(12, 9);
+eeg_filtered = cell(1, 9);
+eeg_spec_filtered = cell(1, 9);
 
-for n = 1:1:12
-    for h = 1:1:9
-        eeg_filtered{n, h} = filtfilt(b,a,eeg_data{n, h});    % Application of Butterworth filter
-        eeg_spec_filtered{n, h} = fft(eeg_filtered{n, h});    % Convert to frequency domain 
-    end 
+
+for h = 1:1:9
+    eeg_filtered{1, h} = filtfilt(b,a,eeg_data{1, h});    % Application of Butterworth filter
+    eeg_spec_filtered{1, h} = fft(eeg_filtered{1, h});    % Convert to frequency domain
 end
 
-clearvars a b  n h
+
+clearvars a b h
 
 %% Plot an instance of raw vs filtered EEG data
 
@@ -81,51 +80,51 @@ xlim([0 60]);
 
 clearvars eeg_data eeg_spec_data
 
-%% Create filters for the five frequency bands 
+%% Create filters for the five frequency bands
 
-hp = 0.2/(Fs/2); % High-pass frequency
-lp = 4/(Fs/2);  % Low-pass frequency
-[db,da] = butter(2,[hp, lp]);  % Delta band filter
+hp = 0.2/(Fs/2);                % High-pass frequency
+lp = 4/(Fs/2);                  % Low-pass frequency
+[db,da] = butter(2,[hp, lp]);   % Delta band filter
 
-hp = 4/(Fs/2); % High-pass frequency
-lp = 8/(Fs/2);  % Low-pass frequency
-[tb,ta] = butter(4,[hp, lp]);  % Theta band filter
+hp = 4/(Fs/2);                  % High-pass frequency
+lp = 8/(Fs/2);                  % Low-pass frequency
+[tb,ta] = butter(4,[hp, lp]);   % Theta band filter
 
-hp = 8/(Fs/2); % High-pass frequency
-lp = 12/(Fs/2);  % Low-pass frequency
-[ab,aa] = butter(4,[hp, lp]);  % Alpha band filter
+hp = 8/(Fs/2);                  % High-pass frequency
+lp = 12/(Fs/2);                 % Low-pass frequency
+[ab,aa] = butter(4,[hp, lp]);   % Alpha band filter
 
-hp = 12/(Fs/2); % High-pass frequency
-lp = 26/(Fs/2);  % Low-pass frequency
-[bb,ba] = butter(4,[hp, lp]);  % Beta band filter
+hp = 12/(Fs/2);                 % High-pass frequency
+lp = 26/(Fs/2);                 % Low-pass frequency
+[bb,ba] = butter(4,[hp, lp]);   % Beta band filter
 
-hp = 26/(Fs/2); % High-pass frequency
-lp = 50/(Fs/2);  % Low-pass frequency
-[gb,ga] = butter(4,[hp, lp]);  % Gamma band filter
+hp = 26/(Fs/2);                 % High-pass frequency
+lp = 50/(Fs/2);                 % Low-pass frequency
+[gb,ga] = butter(4,[hp, lp]);   % Gamma band filter
 
 clearvars lp hp
 
 %% Apply frequency band filter on EEG data
 
-eeg_delta = cell(12, 9);
-eeg_theta = cell(12, 9);
-eeg_alpha = cell(12, 9);
-eeg_beta = cell(12, 9);
-eeg_gamma = cell(12, 9);
+eeg_delta = cell(1, 9);
+eeg_theta = cell(1, 9);
+eeg_alpha = cell(1, 9);
+eeg_beta = cell(1, 9);
+eeg_gamma = cell(1, 9);
 
-for n = 1:1:12
-    for h = 1:1:9
-        eeg_delta{n, h} = filtfilt(db,da,eeg_filtered{n, h});  % Extract delta band
-        eeg_theta{n, h} = filtfilt(tb,ta,eeg_filtered{n, h});  % Extract theta band
-        eeg_alpha{n, h} = filtfilt(ab,aa,eeg_filtered{n, h});  % Extract alpha band
-        eeg_beta{n, h}  = filtfilt(bb,ba,eeg_filtered{n, h});  % Extract beta band
-        eeg_gamma{n, h} = filtfilt(gb,ga,eeg_filtered{n, h});  % Extract gamma band
-    end 
+
+for h = 1:1:9
+    eeg_delta{1, h} = filtfilt(db,da,eeg_filtered{1, h});  % Extract delta band
+    eeg_theta{1, h} = filtfilt(tb,ta,eeg_filtered{1, h});  % Extract theta band
+    eeg_alpha{1, h} = filtfilt(ab,aa,eeg_filtered{1, h});  % Extract alpha band
+    eeg_beta{1, h}  = filtfilt(bb,ba,eeg_filtered{1, h});  % Extract beta band
+    eeg_gamma{1, h} = filtfilt(gb,ga,eeg_filtered{1, h});  % Extract gamma band
 end
 
-clearvars n h db da ta tb aa ab bb ba ga gb
 
-%% Plot an example of each wave 
+clearvars h db da ta tb aa ab bb ba ga gb
+
+%% Plot an example of each wave
 
 figure(2)
 
@@ -161,43 +160,25 @@ xlim([0 10]);
 
 %% Get frequency band spectral transform for delta and theta
 
-eeg_spec_delta = cell(12, 9);
-eeg_spec_theta = cell(12, 9);
-eeg_spec_alpha = cell(12, 9);
-eeg_spec_beta = cell(12, 9);
-eeg_spec_gamma = cell(12, 9);
+eeg_spec_delta = cell(1, 9);
+eeg_spec_theta = cell(1, 9);
+eeg_spec_alpha = cell(1, 9);
+eeg_spec_beta = cell(1, 9);
+eeg_spec_gamma = cell(1, 9);
 
-for n = 1:1:12
-    for h = 1:1:9
-        eeg_spec_delta{n, h} = fft(eeg_delta{n, h});       % Spectral delta band
-        eeg_spec_theta{n, h} = fft(eeg_theta{n, h});       % Spectral theta band
-    end
+for h = 1:1:9
+    eeg_spec_delta{1, h} = fft(eeg_delta{1, h});       % Spectral delta band
+    eeg_spec_theta{1, h} = fft(eeg_theta{1, h});       % Spectral theta band
+    eeg_spec_alpha{1, h} = fft(eeg_alpha{1, h});       % Spectral alpha band
+    eeg_spec_beta{1, h} = fft(eeg_beta{1, h});         % Spectral beta band
+    eeg_spec_gamma{1, h} = fft(eeg_gamma{1, h});       % Spectral gamma band
 end
 
-clearvars n h
-
-%% Get the transform for alpha and beta
-
-for n = 1:1:12
-    for h = 1:1:9
-        eeg_spec_alpha{n, h} = fft(eeg_alpha{n, h});       % Spectral alpha band
-        eeg_spec_beta{n, h} = fft(eeg_beta{n, h});         % Spectral beta band
-    end
-end
-
-clearvars n h
-
-%% Get the transform for gamma
-
-for n = 1:1:12
-    for h = 1:1:9
-        eeg_spec_gamma{n, h} = fft(eeg_gamma{n, h});       % Spectral gamma band
-    end
-end
-
-clearvars n h
+clearvars h
 
 %% Plot spectral data of each band
+
+figure(3)
 
 subplot(5,1,1)
 plot(f0(1, 1)*(0:N(1, 1)-1),abs(eeg_spec_delta{1, 1}(:, 1)))
@@ -228,3 +209,360 @@ plot(f0(1, 1)*(0:N(1, 1)-1),abs(eeg_spec_gamma{1, 1}(:, 1)))
 title('Frequency spectrum of the gamma (0.1Hz a 50Hz)')
 xlabel('Frequency(Hz)'),ylabel('Energy (\muV)'),grid on
 xlim([0 50]);
+
+%% Windowing
+%
+%  The windowing section will create 0.5s segments of the EEG data for each
+%  channel, with a 50% overlap. 
+
+w_size = Fs * 0.5;          % The number of samples per 0.5s segment
+overlap = w_size/2;         % Create a 50% overlap
+
+n_win =floor(N/125 - 1);    % Number of windows per channel
+
+%% Feature Extraction
+%
+%  This section of the code is used to extract features from the EEG data.
+%  The features extracated in this program are: Mean, Standard Deviation, 
+%  Mean Absolute Value, Root Mean Square, Skewness, Kurtosis, Hjorth
+%  Activity, Hjorth Mobility, Hjorth Complexity, Shannon's Entropy, 
+%  Spectral Entropy, Power Spectrum Density, Coherence, and Cross-
+%  correalation for the overall EEG data, and for each frequency band.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Note that the arrays are calculated per window for all 32 channels
+
+eeg_avg = cell(1, 9);
+eeg_std = cell(1, 9);
+eeg_mav = cell(1, 9);
+eeg_rms = cell(1, 9);
+eeg_skw = cell(1, 9);
+eeg_kur = cell(1, 9);
+eeg_hac = cell(1, 9);
+eeg_hmb = cell(1, 9);
+eeg_hcp = cell(1, 9);
+eeg_she = cell(1, 9);
+eeg_spe = cell(1, 9);
+eeg_psd = cell(1, 9);
+eeg_ccr = cell(1, 9);
+
+for h=1:1:9    
+    eeg_avg{1, h} = zeros(n_win(1, h),32); % Average
+    eeg_std{1, h} = zeros(n_win(1, h),32); % Standard Deviation
+    eeg_mav{1, h} = zeros(n_win(1, h),32); % Mean Absolute Value
+    eeg_rms{1, h} = zeros(n_win(1, h),32); % Root Mean Square
+    eeg_skw{1, h} = zeros(n_win(1, h),32); % Skewness
+    eeg_kur{1, h} = zeros(n_win(1, h),32); % Kurtosis
+    eeg_hac{1, h} = zeros(n_win(1, h),32); % Hjorth Activity
+    eeg_hmb{1, h} = zeros(n_win(1, h),32); % Hjorth Mobility
+    eeg_hcp{1, h} = zeros(n_win(1, h),32); % Hjorth Complexity
+    eeg_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
+    eeg_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
+    eeg_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
+    eeg_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
+end 
+
+for h = 1:1:9
+    w_start = 1;                % Start at the first sample
+    w_end = w_size;             % End at window length
+    for n = 1:1:n_win(1, h)
+        eeg_avg{1, h}(n, :) = mean(eeg_filtered{1, h}(w_start:w_end, :));                   % Average for window
+        eeg_std{1, h}(n, :) = std(eeg_filtered{1, h}(w_start:w_end, :));                    % Standard Deviation for window
+        eeg_mav{1, h}(n, :) = mean(abs(eeg_filtered{1, h}(w_start:w_end, :)));              % Mean Absolute Value for window
+        eeg_rms{1, h}(n, :) = rms(eeg_filtered{1, h}(w_start:w_end, :));                    % Root Mean Square for window
+        eeg_skw{1, h}(n, :) = skewness(eeg_filtered{1, h}(w_start:w_end, :));               % Skewness for window
+        eeg_kur{1, h}(n, :) = kurtosis(eeg_filtered{1, h}(w_start:w_end, :));               % Kurtosis for window
+        eeg_hac{1, h}(n, :) = var(eeg_filtered{1, h}(w_start:w_end, :));                    % Hjorth Activity for window
+        [eeg_hmb{1, h}(n, :), eeg_hcp{1, h}(n, :)] = ...
+            HjorthParameters(eeg_filtered{1, h}(w_start:w_end, :));                         % Hjorth Mobility and Complexity for window
+        eeg_she{1, h}(n, :) = wentropy(eeg_filtered{1, h}(w_start:w_end, :), 'shannon');    % Shannon's Entropy for window
+        eeg_spe{1, h}(n, :) = wentropy(eeg_spec_filtered{1, h}(w_start:w_end, :), 'shannon');     % Spectral Entropy for window
+        eeg_psd{1, h}(n, :) = mean(pburg(eeg_filtered{1, h}(w_start:w_end, :), 4));               % Power Spectral Density for window
+    
+        w_start = w_start + overlap;
+        w_end = w_start + w_size;
+    end
+end
+
+clearvars h n 
+
+%% Repeat feature extraction for delta band
+
+delta_avg = cell(1, 9);
+delta_std = cell(1, 9);
+delta_mav = cell(1, 9);
+delta_rms = cell(1, 9);
+delta_skw = cell(1, 9);
+delta_kur = cell(1, 9);
+delta_hac = cell(1, 9);
+delta_hmb = cell(1, 9);
+delta_hcp = cell(1, 9);
+delta_she = cell(1, 9);
+delta_spe = cell(1, 9);
+delta_psd = cell(1, 9);
+delta_ccr = cell(1, 9);
+
+for h=1:1:9    
+    delta_avg{1, h} = zeros(n_win(1, h),32); % Average
+    delta_std{1, h} = zeros(n_win(1, h),32); % Standard Deviation
+    delta_mav{1, h} = zeros(n_win(1, h),32); % Mean Absolute Value
+    delta_rms{1, h} = zeros(n_win(1, h),32); % Root Mean Square
+    delta_skw{1, h} = zeros(n_win(1, h),32); % Skewness
+    delta_kur{1, h} = zeros(n_win(1, h),32); % Kurtosis
+    delta_hac{1, h} = zeros(n_win(1, h),32); % Hjorth Activity
+    delta_hmb{1, h} = zeros(n_win(1, h),32); % Hjorth Mobility
+    delta_hcp{1, h} = zeros(n_win(1, h),32); % Hjorth Complexity
+    delta_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
+    delta_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
+    delta_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
+    delta_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
+end 
+
+for h = 1:1:9
+    w_start = 1;                % Start at the first sample
+    w_end = w_size;             % End at window length
+    for n = 1:1:n_win(1, h)
+        delta_avg{1, h}(n, :) = mean(eeg_delta{1, h}(w_start:w_end, :));                   % Average for window
+        delta_std{1, h}(n, :) = std(eeg_delta{1, h}(w_start:w_end, :));                    % Standard Deviation for window
+        delta_mav{1, h}(n, :) = mean(abs(eeg_delta{1, h}(w_start:w_end, :)));              % Mean Absolute Value for window
+        delta_rms{1, h}(n, :) = rms(eeg_delta{1, h}(w_start:w_end, :));                    % Root Mean Square for window
+        delta_skw{1, h}(n, :) = skewness(eeg_delta{1, h}(w_start:w_end, :));               % Skewness for window
+        delta_kur{1, h}(n, :) = kurtosis(eeg_delta{1, h}(w_start:w_end, :));               % Kurtosis for window
+        delta_hac{1, h}(n, :) = var(eeg_delta{1, h}(w_start:w_end, :));                    % Hjorth Activity for window
+        [delta_hmb{1, h}(n, :), delta_hcp{1, h}(n, :)] = ...
+            HjorthParameters(eeg_delta{1, h}(w_start:w_end, :));                         % Hjorth Mobility and Complexity for window
+        delta_she{1, h}(n, :) = wentropy(eeg_delta{1, h}(w_start:w_end, :), 'shannon');    % Shannon's Entropy for window
+        delta_spe{1, h}(n, :) = wentropy(eeg_spec_delta{1, h}(w_start:w_end, :), 'shannon');     % Spectral Entropy for window
+        delta_psd{1, h}(n, :) = mean(pburg(eeg_delta{1, h}(w_start:w_end, :), 4));               % Power Spectral Density for window
+    
+        w_start = w_start + overlap;
+        w_end = w_start + w_size;
+    end
+end
+
+clearvars h n 
+
+%% Repeat feature extraction for theta band
+
+theta_avg = cell(1, 9);
+theta_std = cell(1, 9);
+theta_mav = cell(1, 9);
+theta_rms = cell(1, 9);
+theta_skw = cell(1, 9);
+theta_kur = cell(1, 9);
+theta_hac = cell(1, 9);
+theta_hmb = cell(1, 9);
+theta_hcp = cell(1, 9);
+theta_she = cell(1, 9);
+theta_spe = cell(1, 9);
+theta_psd = cell(1, 9);
+theta_ccr = cell(1, 9);
+
+for h=1:1:9    
+    theta_avg{1, h} = zeros(n_win(1, h),32); % Average
+    theta_std{1, h} = zeros(n_win(1, h),32); % Standard Deviation
+    theta_mav{1, h} = zeros(n_win(1, h),32); % Mean Absolute Value
+    theta_rms{1, h} = zeros(n_win(1, h),32); % Root Mean Square
+    theta_skw{1, h} = zeros(n_win(1, h),32); % Skewness
+    theta_kur{1, h} = zeros(n_win(1, h),32); % Kurtosis
+    theta_hac{1, h} = zeros(n_win(1, h),32); % Hjorth Activity
+    theta_hmb{1, h} = zeros(n_win(1, h),32); % Hjorth Mobility
+    theta_hcp{1, h} = zeros(n_win(1, h),32); % Hjorth Complexity
+    theta_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
+    theta_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
+    theta_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
+    theta_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
+end 
+
+for h = 1:1:9
+    w_start = 1;                % Start at the first sample
+    w_end = w_size;             % End at window length
+    for n = 1:1:n_win(1, h)
+        theta_avg{1, h}(n, :) = mean(eeg_theta{1, h}(w_start:w_end, :));                   % Average for window
+        theta_std{1, h}(n, :) = std(eeg_theta{1, h}(w_start:w_end, :));                    % Standard Deviation for window
+        theta_mav{1, h}(n, :) = mean(abs(eeg_theta{1, h}(w_start:w_end, :)));              % Mean Absolute Value for window
+        theta_rms{1, h}(n, :) = rms(eeg_theta{1, h}(w_start:w_end, :));                    % Root Mean Square for window
+        theta_skw{1, h}(n, :) = skewness(eeg_theta{1, h}(w_start:w_end, :));               % Skewness for window
+        theta_kur{1, h}(n, :) = kurtosis(eeg_theta{1, h}(w_start:w_end, :));               % Kurtosis for window
+        theta_hac{1, h}(n, :) = var(eeg_theta{1, h}(w_start:w_end, :));                    % Hjorth Activity for window
+        [theta_hmb{1, h}(n, :), theta_hcp{1, h}(n, :)] = ...
+            HjorthParameters(eeg_theta{1, h}(w_start:w_end, :));                         % Hjorth Mobility and Complexity for window
+        theta_she{1, h}(n, :) = wentropy(eeg_theta{1, h}(w_start:w_end, :), 'shannon');    % Shannon's Entropy for window
+        theta_spe{1, h}(n, :) = wentropy(eeg_spec_theta{1, h}(w_start:w_end, :), 'shannon');     % Spectral Entropy for window
+        theta_psd{1, h}(n, :) = mean(pburg(eeg_theta{1, h}(w_start:w_end, :), 4));               % Power Spectral Density for window
+    
+        w_start = w_start + overlap;
+        w_end = w_start + w_size;
+    end
+end
+
+clearvars h n 
+
+%% Repeat feature extraction for alpha band
+
+alpha_avg = cell(1, 9);
+alpha_std = cell(1, 9);
+alpha_mav = cell(1, 9);
+alpha_rms = cell(1, 9);
+alpha_skw = cell(1, 9);
+alpha_kur = cell(1, 9);
+alpha_hac = cell(1, 9);
+alpha_hmb = cell(1, 9);
+alpha_hcp = cell(1, 9);
+alpha_she = cell(1, 9);
+alpha_spe = cell(1, 9);
+alpha_psd = cell(1, 9);
+alpha_ccr = cell(1, 9);
+
+for h=1:1:9    
+    alpha_avg{1, h} = zeros(n_win(1, h),32); % Average
+    alpha_std{1, h} = zeros(n_win(1, h),32); % Standard Deviation
+    alpha_mav{1, h} = zeros(n_win(1, h),32); % Mean Absolute Value
+    alpha_rms{1, h} = zeros(n_win(1, h),32); % Root Mean Square
+    alpha_skw{1, h} = zeros(n_win(1, h),32); % Skewness
+    alpha_kur{1, h} = zeros(n_win(1, h),32); % Kurtosis
+    alpha_hac{1, h} = zeros(n_win(1, h),32); % Hjorth Activity
+    alpha_hmb{1, h} = zeros(n_win(1, h),32); % Hjorth Mobility
+    alpha_hcp{1, h} = zeros(n_win(1, h),32); % Hjorth Complexity
+    alpha_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
+    alpha_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
+    alpha_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
+    alpha_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
+end 
+
+for h = 1:1:9
+    w_start = 1;                % Start at the first sample
+    w_end = w_size;             % End at window length
+    for n = 1:1:n_win(1, h)
+        alpha_avg{1, h}(n, :) = mean(eeg_alpha{1, h}(w_start:w_end, :));                   % Average for window
+        alpha_std{1, h}(n, :) = std(eeg_alpha{1, h}(w_start:w_end, :));                    % Standard Deviation for window
+        alpha_mav{1, h}(n, :) = mean(abs(eeg_alpha{1, h}(w_start:w_end, :)));              % Mean Absolute Value for window
+        alpha_rms{1, h}(n, :) = rms(eeg_alpha{1, h}(w_start:w_end, :));                    % Root Mean Square for window
+        alpha_skw{1, h}(n, :) = skewness(eeg_alpha{1, h}(w_start:w_end, :));               % Skewness for window
+        alpha_kur{1, h}(n, :) = kurtosis(eeg_alpha{1, h}(w_start:w_end, :));               % Kurtosis for window
+        alpha_hac{1, h}(n, :) = var(eeg_alpha{1, h}(w_start:w_end, :));                    % Hjorth Activity for window
+        [alpha_hmb{1, h}(n, :), alpha_hcp{1, h}(n, :)] = ...
+            HjorthParameters(eeg_alpha{1, h}(w_start:w_end, :));                         % Hjorth Mobility and Complexity for window
+        alpha_she{1, h}(n, :) = wentropy(eeg_alpha{1, h}(w_start:w_end, :), 'shannon');    % Shannon's Entropy for window
+        alpha_spe{1, h}(n, :) = wentropy(eeg_spec_alpha{1, h}(w_start:w_end, :), 'shannon');     % Spectral Entropy for window
+        alpha_psd{1, h}(n, :) = mean(pburg(eeg_alpha{1, h}(w_start:w_end, :), 4));               % Power Spectral Density for window
+    
+        w_start = w_start + overlap;
+        w_end = w_start + w_size;
+    end
+end
+
+clearvars h n 
+
+%% Repeat feature extraction for beta band
+
+beta_avg = cell(1, 9);
+beta_std = cell(1, 9);
+beta_mav = cell(1, 9);
+beta_rms = cell(1, 9);
+beta_skw = cell(1, 9);
+beta_kur = cell(1, 9);
+beta_hac = cell(1, 9);
+beta_hmb = cell(1, 9);
+beta_hcp = cell(1, 9);
+beta_she = cell(1, 9);
+beta_spe = cell(1, 9);
+beta_psd = cell(1, 9);
+beta_ccr = cell(1, 9);
+
+for h=1:1:9    
+    beta_avg{1, h} = zeros(n_win(1, h),32); % Average
+    beta_std{1, h} = zeros(n_win(1, h),32); % Standard Deviation
+    beta_mav{1, h} = zeros(n_win(1, h),32); % Mean Absolute Value
+    beta_rms{1, h} = zeros(n_win(1, h),32); % Root Mean Square
+    beta_skw{1, h} = zeros(n_win(1, h),32); % Skewness
+    beta_kur{1, h} = zeros(n_win(1, h),32); % Kurtosis
+    beta_hac{1, h} = zeros(n_win(1, h),32); % Hjorth Activity
+    beta_hmb{1, h} = zeros(n_win(1, h),32); % Hjorth Mobility
+    beta_hcp{1, h} = zeros(n_win(1, h),32); % Hjorth Complexity
+    beta_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
+    beta_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
+    beta_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
+    beta_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
+end 
+
+for h = 1:1:9
+    w_start = 1;                % Start at the first sample
+    w_end = w_size;             % End at window length
+    for n = 1:1:n_win(1, h)
+        beta_avg{1, h}(n, :) = mean(eeg_beta{1, h}(w_start:w_end, :));                   % Average for window
+        beta_std{1, h}(n, :) = std(eeg_beta{1, h}(w_start:w_end, :));                    % Standard Deviation for window
+        beta_mav{1, h}(n, :) = mean(abs(eeg_beta{1, h}(w_start:w_end, :)));              % Mean Absolute Value for window
+        beta_rms{1, h}(n, :) = rms(eeg_beta{1, h}(w_start:w_end, :));                    % Root Mean Square for window
+        beta_skw{1, h}(n, :) = skewness(eeg_beta{1, h}(w_start:w_end, :));               % Skewness for window
+        beta_kur{1, h}(n, :) = kurtosis(eeg_beta{1, h}(w_start:w_end, :));               % Kurtosis for window
+        beta_hac{1, h}(n, :) = var(eeg_beta{1, h}(w_start:w_end, :));                    % Hjorth Activity for window
+        [beta_hmb{1, h}(n, :), beta_hcp{1, h}(n, :)] = ...
+            HjorthParameters(eeg_beta{1, h}(w_start:w_end, :));                         % Hjorth Mobility and Complexity for window
+        beta_she{1, h}(n, :) = wentropy(eeg_beta{1, h}(w_start:w_end, :), 'shannon');    % Shannon's Entropy for window
+        beta_spe{1, h}(n, :) = wentropy(eeg_spec_beta{1, h}(w_start:w_end, :), 'shannon');     % Spectral Entropy for window
+        beta_psd{1, h}(n, :) = mean(pburg(eeg_beta{1, h}(w_start:w_end, :), 4));               % Power Spectral Density for window
+    
+        w_start = w_start + overlap;
+        w_end = w_start + w_size;
+    end
+end
+
+clearvars h n 
+
+%% Repeat feature extraction for gamma band
+
+gamma_avg = cell(1, 9);
+gamma_std = cell(1, 9);
+gamma_mav = cell(1, 9);
+gamma_rms = cell(1, 9);
+gamma_skw = cell(1, 9);
+gamma_kur = cell(1, 9);
+gamma_hac = cell(1, 9);
+gamma_hmb = cell(1, 9);
+gamma_hcp = cell(1, 9);
+gamma_she = cell(1, 9);
+gamma_spe = cell(1, 9);
+gamma_psd = cell(1, 9);
+gamma_ccr = cell(1, 9);
+
+for h=1:1:9    
+    gamma_avg{1, h} = zeros(n_win(1, h),32); % Average
+    gamma_std{1, h} = zeros(n_win(1, h),32); % Standard Deviation
+    gamma_mav{1, h} = zeros(n_win(1, h),32); % Mean Absolute Value
+    gamma_rms{1, h} = zeros(n_win(1, h),32); % Root Mean Square
+    gamma_skw{1, h} = zeros(n_win(1, h),32); % Skewness
+    gamma_kur{1, h} = zeros(n_win(1, h),32); % Kurtosis
+    gamma_hac{1, h} = zeros(n_win(1, h),32); % Hjorth Activity
+    gamma_hmb{1, h} = zeros(n_win(1, h),32); % Hjorth Mobility
+    gamma_hcp{1, h} = zeros(n_win(1, h),32); % Hjorth Complexity
+    gamma_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
+    gamma_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
+    gamma_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
+    gamma_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
+end 
+
+for h = 1:1:9
+    w_start = 1;                % Start at the first sample
+    w_end = w_size;             % End at window length
+    for n = 1:1:n_win(1, h)
+        gamma_avg{1, h}(n, :) = mean(eeg_gamma{1, h}(w_start:w_end, :));                   % Average for window
+        gamma_std{1, h}(n, :) = std(eeg_gamma{1, h}(w_start:w_end, :));                    % Standard Deviation for window
+        gamma_mav{1, h}(n, :) = mean(abs(eeg_gamma{1, h}(w_start:w_end, :)));              % Mean Absolute Value for window
+        gamma_rms{1, h}(n, :) = rms(eeg_gamma{1, h}(w_start:w_end, :));                    % Root Mean Square for window
+        gamma_skw{1, h}(n, :) = skewness(eeg_gamma{1, h}(w_start:w_end, :));               % Skewness for window
+        gamma_kur{1, h}(n, :) = kurtosis(eeg_gamma{1, h}(w_start:w_end, :));               % Kurtosis for window
+        gamma_hac{1, h}(n, :) = var(eeg_gamma{1, h}(w_start:w_end, :));                    % Hjorth Activity for window
+        [gamma_hmb{1, h}(n, :), gamma_hcp{1, h}(n, :)] = ...
+            HjorthParameters(eeg_gamma{1, h}(w_start:w_end, :));                         % Hjorth Mobility and Complexity for window
+        gamma_she{1, h}(n, :) = wentropy(eeg_gamma{1, h}(w_start:w_end, :), 'shannon');    % Shannon's Entropy for window
+        gamma_spe{1, h}(n, :) = wentropy(eeg_spec_gamma{1, h}(w_start:w_end, :), 'shannon');     % Spectral Entropy for window
+        gamma_psd{1, h}(n, :) = mean(pburg(eeg_gamma{1, h}(w_start:w_end, :), 4));               % Power Spectral Density for window
+    
+        w_start = w_start + overlap;
+        w_end = w_start + w_size;
+    end
+end
+
+clearvars h n 
