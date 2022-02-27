@@ -5,7 +5,7 @@ clc;
 
 %% Load in the raw EEG data and variables
 
-p = 5;                                          % Choose the participant
+p = 1;                                          % Choose the participant
 
 Fs = 500;                                       % sampling rate
 
