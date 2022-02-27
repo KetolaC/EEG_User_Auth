@@ -1,0 +1,3 @@
+The data for P2 is contained in this folder. 
+
+Data must be extracted before use.
