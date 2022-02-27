@@ -223,6 +223,7 @@ overlap = w_size/2;         % Create a 50% overlap
 n_win =floor(N/125 - 1);    % Number of windows per channel
 
 clearvars Fs N
+
 %% Feature Extraction
 %
 %  This section of the code is used to extract features from the EEG data.
