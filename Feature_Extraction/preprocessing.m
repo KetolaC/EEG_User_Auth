@@ -131,7 +131,7 @@ figure(2)
 subplot(5,1,1)
 plot(t, eeg_delta{1, 1}(:, 1)/10)
 title('Delta Band')
-xlabel('Time (ms)'),ylabel('Amplitude (\muV)'),grid on
+xlabel('Time (s)'),ylabel('Amplitude (\muV)'),grid on
 xlim([0 10]);
 
 subplot(5,1,2)
