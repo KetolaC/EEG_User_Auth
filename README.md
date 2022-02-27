@@ -7,7 +7,7 @@ Feature extraction and signal preprocessing is performed using Matlab. The Signa
 
 1. Clone the repository using the command **TODO**
 ```
-git clone 
+$ git clone 
 ```
 
 2. Enter the Feature_Selection folder and extract the data in the P1-P12 subfolders
