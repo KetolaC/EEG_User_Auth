@@ -5,9 +5,9 @@ clc;
 
 %% Load in the raw EEG data and variables
 
-p = 1;                                            % Choose the participant
+p = 5;                                          % Choose the participant
 
-Fs = 500;                                           % sampling rate
+Fs = 500;                                       % sampling rate
 
 eeg_data = cell(1, 9);
 eeg_spec_data = cell(1, 9);
@@ -16,7 +16,7 @@ T = zeros(1, 9);
 f0 = zeros(1, 9);
 
 for h = 1:1:9                                   % Get session 1 through 9 for participant
-    g = "HS_P" + p + "_S" + h +".csv";          % Make a csv file output name
+    g = "P" + p + "\HS_P" + p + "_S" + h +".csv";          % Make a csv file input name
     eeg_data{1, h} = readmatrix(g);             % Create a cell for each session
     eeg_spec_data{1, h} = fft(eeg_data{1, h});  % Spectrum data for EEG
     N(1, h) = length(eeg_data{1, h});           % number of samples per channel
@@ -210,6 +210,8 @@ title('Frequency spectrum of the gamma (0.1Hz a 50Hz)')
 xlabel('Frequency(Hz)'),ylabel('Energy (\muV)'),grid on
 xlim([0 50]);
 
+clearvars f0 ft T t
+
 %% Windowing
 %
 %  The windowing section will create 0.5s segments of the EEG data for each
@@ -220,14 +222,15 @@ overlap = w_size/2;         % Create a 50% overlap
 
 n_win =floor(N/125 - 1);    % Number of windows per channel
 
+clearvars Fs N
 %% Feature Extraction
 %
 %  This section of the code is used to extract features from the EEG data.
 %  The features extracated in this program are: Mean, Standard Deviation, 
 %  Mean Absolute Value, Root Mean Square, Skewness, Kurtosis, Hjorth
 %  Activity, Hjorth Mobility, Hjorth Complexity, Shannon's Entropy, 
-%  Spectral Entropy, Power Spectrum Density, Coherence, and Cross-
-%  correalation for the overall EEG data, and for each frequency band.
+%  Spectral Entropy, and Power Spectrum Density for the overall EEG data, 
+%  and for each frequency band.
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -245,7 +248,6 @@ eeg_hcp = cell(1, 9);
 eeg_she = cell(1, 9);
 eeg_spe = cell(1, 9);
 eeg_psd = cell(1, 9);
-eeg_ccr = cell(1, 9);
 
 for h=1:1:9    
     eeg_avg{1, h} = zeros(n_win(1, h),32); % Average
@@ -260,32 +262,72 @@ for h=1:1:9
     eeg_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
     eeg_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
     eeg_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
-    eeg_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
 end 
 
 for h = 1:1:9
     w_start = 1;                % Start at the first sample
     w_end = w_size;             % End at window length
     for n = 1:1:n_win(1, h)
-        eeg_avg{1, h}(n, :) = mean(eeg_filtered{1, h}(w_start:w_end, :));                   % Average for window
-        eeg_std{1, h}(n, :) = std(eeg_filtered{1, h}(w_start:w_end, :));                    % Standard Deviation for window
-        eeg_mav{1, h}(n, :) = mean(abs(eeg_filtered{1, h}(w_start:w_end, :)));              % Mean Absolute Value for window
-        eeg_rms{1, h}(n, :) = rms(eeg_filtered{1, h}(w_start:w_end, :));                    % Root Mean Square for window
-        eeg_skw{1, h}(n, :) = skewness(eeg_filtered{1, h}(w_start:w_end, :));               % Skewness for window
-        eeg_kur{1, h}(n, :) = kurtosis(eeg_filtered{1, h}(w_start:w_end, :));               % Kurtosis for window
-        eeg_hac{1, h}(n, :) = var(eeg_filtered{1, h}(w_start:w_end, :));                    % Hjorth Activity for window
+        eeg_avg{1, h}(n, :) = mean(eeg_filtered{1, h}(w_start:w_end, :));                       % Average for window
+        eeg_std{1, h}(n, :) = std(eeg_filtered{1, h}(w_start:w_end, :));                        % Standard Deviation for window
+        eeg_mav{1, h}(n, :) = mean(abs(eeg_filtered{1, h}(w_start:w_end, :)));                  % Mean Absolute Value for window
+        eeg_rms{1, h}(n, :) = rms(eeg_filtered{1, h}(w_start:w_end, :));                        % Root Mean Square for window
+        eeg_skw{1, h}(n, :) = skewness(eeg_filtered{1, h}(w_start:w_end, :));                   % Skewness for window
+        eeg_kur{1, h}(n, :) = kurtosis(eeg_filtered{1, h}(w_start:w_end, :));                   % Kurtosis for window
+        eeg_hac{1, h}(n, :) = var(eeg_filtered{1, h}(w_start:w_end, :));                        % Hjorth Activity for window
         [eeg_hmb{1, h}(n, :), eeg_hcp{1, h}(n, :)] = ...
-            HjorthParameters(eeg_filtered{1, h}(w_start:w_end, :));                         % Hjorth Mobility and Complexity for window
-        eeg_she{1, h}(n, :) = wentropy(eeg_filtered{1, h}(w_start:w_end, :), 'shannon');    % Shannon's Entropy for window
-        eeg_spe{1, h}(n, :) = wentropy(eeg_spec_filtered{1, h}(w_start:w_end, :), 'shannon');     % Spectral Entropy for window
-        eeg_psd{1, h}(n, :) = mean(pburg(eeg_filtered{1, h}(w_start:w_end, :), 4));               % Power Spectral Density for window
+            HjorthParameters(eeg_filtered{1, h}(w_start:w_end, :));                             % Hjorth Mobility and Complexity for window
+        eeg_she{1, h}(n, :) = wentropy(eeg_filtered{1, h}(w_start:w_end, :), 'shannon');        % Shannon's Entropy for window
+        eeg_spe{1, h}(n, :) = wentropy(eeg_spec_filtered{1, h}(w_start:w_end, :), 'shannon');   % Spectral Entropy for window
+        eeg_psd{1, h}(n, :) = mean(pburg(eeg_filtered{1, h}(w_start:w_end, :), 4));             % Power Spectral Density for window
     
-        w_start = w_start + overlap;
-        w_end = w_start + w_size;
+        w_start = w_start + overlap;        % Shift the start of the next window forward by 50%
+        w_end = w_start + w_size;           % Shift end by 250 samples
     end
 end
 
-clearvars h n 
+feats = {eeg_avg, eeg_std, eeg_mav, eeg_rms, eeg_skw, eeg_kur, eeg_hac, ...
+    eeg_hmb, eeg_hcp, eeg_she, eeg_spe, eeg_psd};
+
+clearvars h n eeg_avg eeg_std eeg_mav eeg_rms eeg_skw eeg_kur eeg_hac ...
+    eeg_hmb eeg_hcp eeg_she eeg_spe eeg_psd eeg_filtered eeg_spec_filtered
+
+%% Export features for overall EEG data
+
+table_names = ["Participant", "Feature", "ch1", "ch2", "ch3", "ch4", "ch5", ...
+    "ch6",  "ch7", "ch8", "ch9", "ch10", "ch11", "ch12", "ch13", "ch14",...
+    "ch15", "ch16", "ch17", "ch18", "ch19", "ch20", "ch21", "ch22", ...
+    "ch23", "ch24", "ch25", "ch26", "ch27", "ch28", "ch29", "ch30", ...
+    "ch31", "ch32"];
+
+var_types = ["double", "string", "double", "double", "double", "double", "double",... 
+    "double", "double", "double", "double", "double", "double", "double",...
+    "double", "double", "double", "double", "double", "double", "double",...
+    "double", "double", "double", "double", "double", "double", "double",...
+    "double", "double", "double", "double", "double", "double"];
+
+labels = ["Mean", "Standard Deviation", "Mean Absolute Value", ...
+    "Root Mean Square", "Skewness", "Kurtosis", "Hjorth Activity", ...
+    "Hjorth Mobility", "Hjorth Complexity", "Shannon's Entropy", ...
+    "Spectral Entropy", "Power Spectral Density"];
+
+for h = 1:1:9
+    eeg_features{1, h} = table('Size', [n_win(1, h)*12 ,34], ...
+        'VariableTypes', var_types);                                                % Create table to store all features
+    allVars = 1:width(eeg_features{1, h});
+    eeg_features{1, h} = renamevars(eeg_features{1, h}, allVars, table_names);      % Column names
+    eeg_features{1, h}(:, 1) = {p};
+
+    for n = 1:1:12
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 2) = {labels(1, n)};  % Label features on table
+        feat = array2table(real(feats{1, n}{1, h}));
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 3:34) = feat;         % Label features on table
+    end
+    g = "P" + p + "\Features_P" + p + "_S" + h +".csv";                                        % Make a csv file output name
+    writetable(eeg_features{1, h}, g);
+end 
+
+clearvars h allVars eeg_features feat feats n g
 
 %% Repeat feature extraction for delta band
 
@@ -301,7 +343,6 @@ delta_hcp = cell(1, 9);
 delta_she = cell(1, 9);
 delta_spe = cell(1, 9);
 delta_psd = cell(1, 9);
-delta_ccr = cell(1, 9);
 
 for h=1:1:9    
     delta_avg{1, h} = zeros(n_win(1, h),32); % Average
@@ -316,7 +357,6 @@ for h=1:1:9
     delta_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
     delta_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
     delta_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
-    delta_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
 end 
 
 for h = 1:1:9
@@ -331,7 +371,7 @@ for h = 1:1:9
         delta_kur{1, h}(n, :) = kurtosis(eeg_delta{1, h}(w_start:w_end, :));               % Kurtosis for window
         delta_hac{1, h}(n, :) = var(eeg_delta{1, h}(w_start:w_end, :));                    % Hjorth Activity for window
         [delta_hmb{1, h}(n, :), delta_hcp{1, h}(n, :)] = ...
-            HjorthParameters(eeg_delta{1, h}(w_start:w_end, :));                         % Hjorth Mobility and Complexity for window
+            HjorthParameters(eeg_delta{1, h}(w_start:w_end, :));                           % Hjorth Mobility and Complexity for window
         delta_she{1, h}(n, :) = wentropy(eeg_delta{1, h}(w_start:w_end, :), 'shannon');    % Shannon's Entropy for window
         delta_spe{1, h}(n, :) = wentropy(eeg_spec_delta{1, h}(w_start:w_end, :), 'shannon');     % Spectral Entropy for window
         delta_psd{1, h}(n, :) = mean(pburg(eeg_delta{1, h}(w_start:w_end, :), 4));               % Power Spectral Density for window
@@ -341,7 +381,31 @@ for h = 1:1:9
     end
 end
 
-clearvars h n 
+feats = {delta_avg, delta_std, delta_mav, delta_rms, delta_skw, delta_kur, delta_hac, ...
+    delta_hmb, delta_hcp, delta_she, delta_spe, delta_psd};
+
+clearvars h n delta_avg delta_std delta_mav delta_rms delta_skw delta_kur delta_hac ...
+    delta_hmb delta_hcp delta_she delta_spe delta_psd eeg_delta eeg_spec_delta
+
+%% Export features for the delta band
+
+for h = 1:1:9
+    eeg_features{1, h} = table('Size', [n_win(1, h)*12 ,34], ...
+        'VariableTypes', var_types);                                                % Create table to store all features
+    allVars = 1:width(eeg_features{1, h});
+    eeg_features{1, h} = renamevars(eeg_features{1, h}, allVars, table_names);      % Column names
+    eeg_features{1, h}(:, 1) = {p};
+
+    for n = 1:1:12
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 2) = {labels(1, n)};  % Label features on table
+        feat = array2table(real(feats{1, n}{1, h}));
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 3:34) = feat;         % Label features on table
+    end
+    g = "P" + p + "\Features_P" + p + "_S" + h +"_Delta.csv";                                  % Make a csv file output name
+    writetable(eeg_features{1, h}, g);
+end 
+
+clearvars h allVars eeg_features feat feats n g
 
 %% Repeat feature extraction for theta band
 
@@ -357,7 +421,6 @@ theta_hcp = cell(1, 9);
 theta_she = cell(1, 9);
 theta_spe = cell(1, 9);
 theta_psd = cell(1, 9);
-theta_ccr = cell(1, 9);
 
 for h=1:1:9    
     theta_avg{1, h} = zeros(n_win(1, h),32); % Average
@@ -372,7 +435,6 @@ for h=1:1:9
     theta_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
     theta_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
     theta_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
-    theta_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
 end 
 
 for h = 1:1:9
@@ -397,7 +459,31 @@ for h = 1:1:9
     end
 end
 
-clearvars h n 
+feats = {theta_avg, theta_std, theta_mav, theta_rms, theta_skw, theta_kur, theta_hac, ...
+    theta_hmb, theta_hcp, theta_she, theta_spe, theta_psd};
+
+clearvars h n theta_avg theta_std theta_mav theta_rms theta_skw theta_kur theta_hac ...
+    theta_hmb theta_hcp theta_she theta_spe theta_psd eeg_theta eeg_spec_theta
+
+%% Export features for the theta band
+
+for h = 1:1:9
+    eeg_features{1, h} = table('Size', [n_win(1, h)*12 ,34], ...
+        'VariableTypes', var_types);                                                % Create table to store all features
+    allVars = 1:width(eeg_features{1, h});
+    eeg_features{1, h} = renamevars(eeg_features{1, h}, allVars, table_names);      % Column names
+    eeg_features{1, h}(:, 1) = {p};
+
+    for n = 1:1:12
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 2) = {labels(1, n)};  % Label features on table
+        feat = array2table(real(feats{1, n}{1, h}));
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 3:34) = feat;         % Label features on table
+    end
+    g = "P" + p + "\Features_P" + p + "_S" + h +"_Theta.csv";                                  % Make a csv file output name
+    writetable(eeg_features{1, h}, g);
+end 
+
+clearvars h allVars eeg_features feat feats n g
 
 %% Repeat feature extraction for alpha band
 
@@ -413,7 +499,6 @@ alpha_hcp = cell(1, 9);
 alpha_she = cell(1, 9);
 alpha_spe = cell(1, 9);
 alpha_psd = cell(1, 9);
-alpha_ccr = cell(1, 9);
 
 for h=1:1:9    
     alpha_avg{1, h} = zeros(n_win(1, h),32); % Average
@@ -428,7 +513,6 @@ for h=1:1:9
     alpha_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
     alpha_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
     alpha_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
-    alpha_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
 end 
 
 for h = 1:1:9
@@ -453,7 +537,31 @@ for h = 1:1:9
     end
 end
 
-clearvars h n 
+feats = {alpha_avg, alpha_std, alpha_mav, alpha_rms, alpha_skw, alpha_kur, alpha_hac, ...
+    alpha_hmb, alpha_hcp, alpha_she, alpha_spe, alpha_psd};
+
+clearvars h n alpha_avg alpha_std alpha_mav alpha_rms alpha_skw alpha_kur alpha_hac ...
+    alpha_hmb alpha_hcp alpha_she alpha_spe alpha_psd eeg_alpha eeg_spec_alpha
+
+%% Export features for the alpha band
+
+for h = 1:1:9
+    eeg_features{1, h} = table('Size', [n_win(1, h)*12 ,34], ...
+        'VariableTypes', var_types);                                                % Create table to store all features
+    allVars = 1:width(eeg_features{1, h});
+    eeg_features{1, h} = renamevars(eeg_features{1, h}, allVars, table_names);      % Column names
+    eeg_features{1, h}(:, 1) = {p};
+
+    for n = 1:1:12
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 2) = {labels(1, n)};  % Label features on table
+        feat = array2table(real(feats{1, n}{1, h}));
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 3:34) = feat;         % Label features on table
+    end
+    g = "P" + p + "\Features_P" + p + "_S" + h +"_Alpha.csv";                                  % Make a csv file output name
+    writetable(eeg_features{1, h}, g);
+end 
+
+clearvars h allVars eeg_features feat feats n g
 
 %% Repeat feature extraction for beta band
 
@@ -469,7 +577,6 @@ beta_hcp = cell(1, 9);
 beta_she = cell(1, 9);
 beta_spe = cell(1, 9);
 beta_psd = cell(1, 9);
-beta_ccr = cell(1, 9);
 
 for h=1:1:9    
     beta_avg{1, h} = zeros(n_win(1, h),32); % Average
@@ -484,7 +591,6 @@ for h=1:1:9
     beta_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
     beta_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
     beta_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
-    beta_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
 end 
 
 for h = 1:1:9
@@ -509,7 +615,31 @@ for h = 1:1:9
     end
 end
 
-clearvars h n 
+feats = {beta_avg, beta_std, beta_mav, beta_rms, beta_skw, beta_kur, beta_hac, ...
+    beta_hmb, beta_hcp, beta_she, beta_spe, beta_psd};
+
+clearvars h n beta_avg beta_std beta_mav beta_rms beta_skw beta_kur beta_hac ...
+    beta_hmb beta_hcp beta_she beta_spe beta_psd eeg_beta eeg_spec_beta
+
+%% Export features for the beta band
+
+for h = 1:1:9
+    eeg_features{1, h} = table('Size', [n_win(1, h)*12 ,34], ...
+        'VariableTypes', var_types);                                                % Create table to store all features
+    allVars = 1:width(eeg_features{1, h});
+    eeg_features{1, h} = renamevars(eeg_features{1, h}, allVars, table_names);      % Column names
+    eeg_features{1, h}(:, 1) = {p};
+
+    for n = 1:1:12
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 2) = {labels(1, n)};  % Label features on table
+        feat = array2table(real(feats{1, n}{1, h}));
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 3:34) = feat;         % Label features on table
+    end
+    g = "P" + p + "\Features_P" + p + "_S" + h +"_Beta.csv";                                  % Make a csv file output name
+    writetable(eeg_features{1, h}, g);
+end 
+
+clearvars h allVars eeg_features feat feats n g
 
 %% Repeat feature extraction for gamma band
 
@@ -525,7 +655,6 @@ gamma_hcp = cell(1, 9);
 gamma_she = cell(1, 9);
 gamma_spe = cell(1, 9);
 gamma_psd = cell(1, 9);
-gamma_ccr = cell(1, 9);
 
 for h=1:1:9    
     gamma_avg{1, h} = zeros(n_win(1, h),32); % Average
@@ -540,7 +669,6 @@ for h=1:1:9
     gamma_she{1, h} = zeros(n_win(1, h),32); % Shannon's EntropyW
     gamma_spe{1, h} = zeros(n_win(1, h),32); % Spectral Entropy
     gamma_psd{1, h} = zeros(n_win(1, h),32); % Power Spectral Density
-    gamma_ccr{1, h} = zeros(n_win(1, h),32); % Cross-correlation 
 end 
 
 for h = 1:1:9
@@ -565,4 +693,30 @@ for h = 1:1:9
     end
 end
 
-clearvars h n 
+feats = {gamma_avg, gamma_std, gamma_mav, gamma_rms, gamma_skw, gamma_kur, gamma_hac, ...
+    gamma_hmb, gamma_hcp, gamma_she, gamma_spe, gamma_psd};
+
+clearvars h n gamma_avg gamma_std gamma_mav gamma_rms gamma_skw gamma_kur gamma_hac ...
+    gamma_hmb gamma_hcp gamma_she gamma_spe gamma_psd eeg_gamma eeg_spec_gamma ...
+    overlap w_end w_start w_size
+
+%% Export features for the gamma band
+
+for h = 1:1:9
+    eeg_features{1, h} = table('Size', [n_win(1, h)*12 ,34], ...
+        'VariableTypes', var_types);                                                % Create table to store all features
+    allVars = 1:width(eeg_features{1, h});
+    eeg_features{1, h} = renamevars(eeg_features{1, h}, allVars, table_names);      % Column names
+    eeg_features{1, h}(:, 1) = {p};
+
+    for n = 1:1:12
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 2) = {labels(1, n)};  % Label features on table
+        feat = array2table(real(feats{1, n}{1, h}));
+        eeg_features{1, h}(n_win(1, h)*(n-1)+1:n_win(1, h)*n, 3:34) = feat;         % Label features on table
+    end
+    g = "P" + p + "\Features_P" + p + "_S" + h +"_Gamma.csv";                                  % Make a csv file output name
+    writetable(eeg_features{1, h}, g);
+end 
+
+clearvars h allVars eeg_features feat feats n g n_win labels p table_names ...
+    table_size var_types
