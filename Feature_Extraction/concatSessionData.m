@@ -8,19 +8,30 @@ function concatTable = concatSessionData(numSess, part, band)
 %Output:
 %   newTable: the new table with the concatenated data
 
-%test values
-numSess = 9;
-part = 1;
-band = 'Theta';
+namedBands = {'Alpha'; 'Beta'; 'Delta'; 'Gamma'; 'Theta'};
+findBand = 0;
+for h = 1:1:5
+    if strcmp(band, namedBands(h))
+        findBand = findBand + 1;
+    end
+end
 
 sessDatLen = zeros(1,numSess);
-filename = ['Features_P', num2str(part), '_S', num2str(1), '_', num2str(band), '.csv'];
+if findBand == 1
+    filename = ['Features_P', num2str(part), '_S', num2str(1), '_', band, '.csv'];
+else
+    filename = ['Features_P', num2str(part), '_S', num2str(1), '.csv'];
+end
 concatTable = readtable(filename);
 [rowSess,~] = size(readtable(filename));
 sessDatLen(1) = rowSess;
 
 for h = 2:1:numSess
-    filename = ['Features_P', num2str(part), '_S', num2str(h), '_', num2str(band), '.csv'];
+    if findBand == 1
+        filename = ['Features_P', num2str(part), '_S', num2str(h), '_', band, '.csv'];
+    else
+        filename = ['Features_P', num2str(part), '_S', num2str(h), '.csv'];
+    end
     concatTable = vertcat(concatTable,readtable(filename));
     [rowSess,~] = size(readtable(filename));
     sessDatLen(h) = rowSess;
@@ -30,10 +41,8 @@ end
 Session = zeros(col,1);
 startInd = 1;
 for h = 1:1:numSess
-    for l = 1:1:sessDatLen(h)
-        Session(startInd:startInd+sessDatLen(h)) = h;
-    end
-    startInd = sessDatLen(h);
+    Session(startInd:startInd+sessDatLen(h)-1) = h;
+    startInd = startInd + sessDatLen(h);
 end
 sessNumTable = table(Session);
 
