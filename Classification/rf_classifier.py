@@ -4,8 +4,11 @@
 from sklearn import ensemble
 from imblearn.over_sampling import SMOTE
 import numpy as np
+import time
 import csv
 import os
+
+start_time = time.time()
 
 debug = True       # Set debug = True to get debug messages in the console
 
@@ -22,6 +25,8 @@ all_results = []
 #
 for p in gen_user:
 
+    if debug:
+        print(p)
     gen = p
 
     all_results.append(gen)
@@ -83,7 +88,7 @@ for p in gen_user:
     for i in range(len(train_data)):
         train_labels.append(1) if train_data[i][0] == gen else train_labels.append(0)   # Create labels for training data
 
-    smote_model = SMOTE(random_state=56)     # RNG seed randomly selected as 56 for replicability
+    smote_model = SMOTE(random_state=56,n_jobs = -1)     # RNG seed randomly selected as 56 for replicability
     smote_feats, smote_labels = smote_model.fit_resample(train_feats, train_labels)  # Create upsampled data and labels
 
     if debug:
@@ -191,7 +196,7 @@ for p in gen_user:
     if debug:
         print("Channel ranking started")
 
-    dt_model = ensemble.ExtraTreesClassifier()     # Creates a dt classifier of 100 random decision trees
+    dt_model = ensemble.ExtraTreesClassifier(n_jobs = -1)     # Creates a dt classifier of 100 random decision trees
     dt_model.fit(smote_feats, smote_labels)        # Fits the dt model with the upsampled training data
     ranked_channels = dt_model.feature_importances_
 
@@ -211,7 +216,7 @@ for p in gen_user:
 
     all_results.append(ranked_channels)
 
-    del [smote_feats, test_feats, ranked_channels]
+    del [smote_feats, test_feats, ranked_channels, dt_model]
 
     ##
 
@@ -258,4 +263,8 @@ for p in gen_user:
 
     all_results.append(scores)
 
-    del [feats_copy, test_copy, test_labels, smote_labels, scores]
+    del [feats_copy, test_copy, test_labels, smote_labels, scores, rf_model]
+
+
+print("Execution time: %s seconds" % (time.time() - start_time))
+print(all_results)
