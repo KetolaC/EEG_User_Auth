@@ -13,7 +13,7 @@ start_time = time.time()
 
 debug = True  # Set debug = True to get debug messages in the console
 
-gen_user = [1] #, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # Set the genuine user
+gen_user = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # Set the genuine user
 
 all_results = []
 
@@ -33,9 +33,9 @@ f = open(file, 'w')
 #  contained in the list will be printed out.
 #  -------------------------------------------------------------------------------------------------------------  #
 
-train_file = cwd + '/WAY_EEG_GAL_split_data/TrainingData.csv'  # Get training data .csv path
-valid_file = cwd + '/WAY_EEG_GAL_split_data/ValidationData.csv'  # Get validation data .csv path
-test_file = cwd + '/WAY_EEG_GAL_split_data/TestingData.csv'  # Get testing data .csv path
+train_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_TrainingData.csv'  # Get training data .csv path
+valid_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_ValidationData.csv'  # Get validation data .csv path
+test_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_TestingData.csv'  # Get testing data .csv path
 
 channels = (0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
             29, 30, 31, 32, 33)
@@ -117,7 +117,7 @@ for p in gen_user:
         print("(Rows, Columns): " + str(smote_data.shape))
         print("Balancing time: %s seconds" % (time.time() - smote_time))
 
-    del [smote_time, smote_model, to_write, bin_train_labels]
+    del [smote_time, smote_model, bin_train_labels] #to_write,
 
 
     ## Train and validate the RF classifier with all features as a benchmark
@@ -128,11 +128,23 @@ for p in gen_user:
     #  reduction process will be compared.
     #  -------------------------------------------------------------------------------------------------------------  #
 
+    # Setup the possible parameters for the RF model
+
+    n_trees = [50, 75]    # Number of trees
+    split = 0 # 0 = gini impurity
+    samples = 1.0   # Use all data for every tree
+    depth = 64
+
     if debug:
         print("Starting benchmark RF testing")
         bench_time = time.time()
 
-    rf_model = ensemble.RandomForestClassifier()  # Create a RF model
+    best = 0.0
+
+    valid_time = time.time()
+
+    rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=split, max_samples=samples,
+                                               max_depth=depth, max_features='auto',  random_state=56)  # Create a RF model
     rf_model.fit(smote_data, smote_labels)  # Fit the model using training data with all features
 
     print("Done fitting model")
@@ -140,12 +152,15 @@ for p in gen_user:
     rf_pred = rf_model.predict(valid_data)  # Predicts class of validation data
     score = rf_model.score(valid_data, bin_valid_labels)  # Gets the classification accuracy
 
+    print("Score: %s" % (score/100*10000))
+    print("Benchmarking time: %s seconds" % (time.time() - valid_time))
+
     if debug:
         print("Completed benchmark RF testing")
         print("Results: " + str(score))
         print("Benchmarking time: %s seconds" % (time.time() - bench_time))
 
-    print("\n\n")
+        print("\n\n")
 
     all_results.append(score)
 
@@ -153,7 +168,7 @@ for p in gen_user:
 
     f.write(to_write)
 
-    del [bench_time, bin_valid_labels, score, to_write]
+    del [bench_time, bin_valid_labels, score, rf_model, to_write]
 
 
     ## Channel Ranking
