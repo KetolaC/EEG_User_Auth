@@ -1,19 +1,22 @@
-
 ## Import libraries
 
-from sklearn import ensemble
+from sklearn import ensemble as ensemblesk
+from cuml import ensemble
 from imblearn.over_sampling import SMOTE
 import numpy as np
 import time
 import os
 
+## Setup initial variables for authentication
+
 start_time = time.time()
 
-debug = True       # Set debug = True to get debug messages in the console
+debug = True  # Set debug = True to get debug messages in the console
 
-gen_user = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']     # Set the genuine user
+gen_user = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # Set the genuine user
 
 all_results = []
+
 
 ## Setup a text file to write results to
 
@@ -47,7 +50,7 @@ if debug:  # Print .csv data size if debugging is activated
     print("Size of testing data: " + str(test.shape))
     print("Files imported successfully\n\n")
 
-## separate data into labels and feature data
+## seperate data into labels and feature data
 
 train_labels = train[:, 0]  # Save labels of training data
 train_data = np.delete(train, 0, axis=1)  # Remove labels from feature dataset
@@ -59,6 +62,8 @@ test_labels = valid[:, 0]  # Save labels of validation data
 test_data = np.delete(valid, 0, axis=1)    # Remove labels from feature dataset
 
 del [cwd, file, train_file, valid_file, test_file, channels, train, valid, test]  # Remove excess variables
+
+## Parse through all participants
 
 for p in gen_user:
 
@@ -138,7 +143,8 @@ for p in gen_user:
 
     valid_time = time.time()
 
-    rf_model = ensemble.RandomForestClassifier(n_jobs=-1,  random_state=56)  # Create a RF model
+    rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=split, max_samples=samples,
+                                               max_depth=depth, max_features='auto',  random_state=56)  # Create a RF model
     rf_model.fit(smote_data, smote_labels)  # Fit the model using training data with all features
 
     print("Done fitting model")
@@ -175,7 +181,7 @@ for p in gen_user:
         print("Channel ranking started")
         chann_time = time.time()
 
-    dt_model = ensemble.ExtraTreesClassifier(n_jobs=-1, random_state=56)   # Creates a dt classifier of 100 random decision trees
+    dt_model = ensemblesk.ExtraTreesClassifier(n_jobs=-1)   # Creates a dt classifier of 100 random decision trees
     dt_model.fit(smote_data, smote_labels)                  # Fits the dt model with the upsampled training data
     ranked_channels = dt_model.feature_importances_
 
@@ -241,7 +247,7 @@ for p in gen_user:
         if debug:
             print("Starting RF testing with  " + str(32 - n) + " channels")
 
-        rf_model = ensemble.RandomForestClassifier(n_jobs=-1)  # Create a RF model with worst channel removed
+        rf_model = ensemble.RandomForestClassifier()  # Create a RF model with worst channel removed
         rf_model.fit(smote_data, smote_labels)  # Fit the model using training data with all features
 
         if debug:
