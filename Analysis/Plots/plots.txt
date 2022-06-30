@@ -1,0 +1,1 @@
+This folder contains the graphs and plots obtained through analysis.
