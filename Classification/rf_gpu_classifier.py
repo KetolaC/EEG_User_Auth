@@ -8,34 +8,32 @@ import time
 import os
 
 ## Setup initial variables for authentication
-
 start_time = time.time()
 
 debug = True  # Set debug = True to get debug messages in the console
 
-gen_user = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # Set the genuine user
+gen_user= [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # Set the genuine user
 
 all_results = []
-
 
 ## Setup a text file to write results to
 
 cwd = os.getcwd()  # Get the current working directory (cwd)
 
-file = cwd + "/results.txt"
-
-f = open(file, 'w')
+file = cwd + "/Results/theta_results.txt"
 
 ## Import the .csv files for training data, validation data, and testing data
 #
 #  This section imports the training, validation, and testing data from .csv
 #  files and converts the data into list formats. If debug is true, the data
-#  contained in the list will be printed out.
+#  contained in the list will be printed out. To change the band, add Aplha_,
+#  Beta_, Delta_, Gamma_, or Theta_ before TrainingData.csv, ValidationData.csv,
+#  and TestingData.csv.
 #  -------------------------------------------------------------------------------------------------------------  #
 
-train_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_TrainingData.csv'  # Get training data .csv path
-valid_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_ValidationData.csv'  # Get validation data .csv path
-test_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_TestingData.csv'  # Get testing data .csv path
+train_file = cwd + '/WAY_EEG_GAL_split_data/Theta_TrainingData.csv'  # Get training data .csv path
+valid_file = cwd + '/WAY_EEG_GAL_split_data/Theta_ValidationData.csv'  # Get validation data .csv path
+test_file = cwd + '/WAY_EEG_GAL_split_data/Theta_TestingData.csv'  # Get testing data .csv path
 
 channels = (0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
             29, 30, 31, 32, 33)
@@ -56,16 +54,19 @@ train_labels = train[:, 0]  # Save labels of training data
 train_data = np.delete(train, 0, axis=1)  # Remove labels from feature dataset
 
 valid_labels = valid[:, 0]  # Save labels of validation data
-valid_data = np.delete(valid, 0, axis=1)    # Remove labels from feature dataset
+valid_data = np.delete(valid, 0, axis=1)  # Remove labels from feature dataset
 
 test_labels = valid[:, 0]  # Save labels of validation data
-test_data = np.delete(valid, 0, axis=1)    # Remove labels from feature dataset
+test_data = np.delete(valid, 0, axis=1)  # Remove labels from feature dataset
 
-del [cwd, file, train_file, valid_file, test_file, channels, train, valid, test]  # Remove excess variables
+del [cwd, train_file, valid_file, test_file, channels, train, valid, test]  # Remove excess variables
 
 ## Parse through all participants
 
 for p in gen_user:
+
+    if debug:
+        par_time = time.time()
 
     gen = p
 
@@ -76,7 +77,9 @@ for p in gen_user:
 
     to_write = "Participant " + str(gen) + "\n\n"
 
+    f = open(file, 'a')
     f.write(to_write)
+    f.close()
 
     # Binerizing Data
     #
@@ -89,13 +92,13 @@ for p in gen_user:
     bin_test_labels = np.empty_like(test_labels, dtype=int)
 
     for i in range(len(train_data)):
-        bin_train_labels[i] = 1 if train_labels[i] == gen else 0    # Create labels for training data
+        bin_train_labels[i] = 1 if train_labels[i] == gen else 0  # Create labels for training data
 
     for i in range(len(valid_data)):
-        bin_valid_labels[i] = 1 if valid_labels[i] == gen else 0    # Create labels for validation data
-        bin_test_labels[i] = 1 if test_labels[i] == gen else 0       # Create labels for validation data
+        bin_valid_labels[i] = 1 if valid_labels[i] == gen else 0  # Create labels for validation data
+        bin_test_labels[i] = 1 if test_labels[i] == gen else 0  # Create labels for validation data
 
-    del [gen]
+    del [gen, to_write, f]
 
     # Balancing the training data
     #
@@ -110,15 +113,14 @@ for p in gen_user:
         smote_time = time.time()
 
     smote_model = SMOTE(random_state=56, n_jobs=-1)  # RNG seed randomly selected as 56 for replicability
-    smote_data, smote_labels = smote_model.fit_resample(train_data, bin_train_labels)  # Create upsampled data and labels
+    smote_data, smote_labels = smote_model.fit_resample(train_data,
+                                                        bin_train_labels)  # Create upsampled data and labels
 
     if debug:
         print("Done balancing the data")
-        print("(Rows, Columns): " + str(smote_data.shape))
         print("Balancing time: %s seconds" % (time.time() - smote_time))
 
-    del [smote_time, smote_model, bin_train_labels] #to_write,
-
+    del [smote_time, smote_model, bin_train_labels]
 
     ## Train and validate the RF classifier with all features as a benchmark
     #
@@ -130,9 +132,9 @@ for p in gen_user:
 
     # Setup the possible parameters for the RF model
 
-    n_trees = [50, 75]    # Number of trees
-    split = 0 # 0 = gini impurity
-    samples = 1.0   # Use all data for every tree
+    n_trees = [50, 75]  # Number of trees
+    split = 0  # 0 = gini impurity
+    samples = 1.0  # Use all data for every tree
     depth = 64
 
     if debug:
@@ -141,19 +143,13 @@ for p in gen_user:
 
     best = 0.0
 
-    valid_time = time.time()
-
     rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=split, max_samples=samples,
-                                               max_depth=depth, max_features='auto',  random_state=56)  # Create a RF model
+                                               max_depth=depth, max_features='auto', random_state=56,
+                                               n_streams=1)  # Create a RF model
     rf_model.fit(smote_data, smote_labels)  # Fit the model using training data with all features
-
-    print("Done fitting model")
 
     rf_pred = rf_model.predict(valid_data)  # Predicts class of validation data
     score = rf_model.score(valid_data, bin_valid_labels)  # Gets the classification accuracy
-
-    print("Score: %s" % (score/100*10000))
-    print("Benchmarking time: %s seconds" % (time.time() - valid_time))
 
     if debug:
         print("Completed benchmark RF testing")
@@ -166,10 +162,11 @@ for p in gen_user:
 
     to_write = "Benchmark Score: " + str(score) + "\n\n"
 
+    f = open(file, 'a')
     f.write(to_write)
+    f.close()
 
-    del [bench_time, bin_valid_labels, score, rf_model, to_write]
-
+    del [bench_time, bin_valid_labels, score, rf_model, to_write, f]
 
     ## Channel Ranking
     #
@@ -185,6 +182,13 @@ for p in gen_user:
     dt_model.fit(smote_data, smote_labels)                  # Fits the dt model with the upsampled training data
     ranked_channels = dt_model.feature_importances_
 
+    # print("Setting up model")
+    # chan_ranker = ensemblesk.RandomForestClassifier(random_state=56, n_jobs=-1)
+    # print("Fitting model")
+    # chan_ranker.fit(smote_data, smote_labels)
+    # print("Getting ranked channels")
+    # ranked_channels = chan_ranker.feature_importances_
+
     if debug:
         print("Channel ranking completed")
         print(ranked_channels)
@@ -192,13 +196,14 @@ for p in gen_user:
 
     all_results.append(ranked_channels)
 
-    to_write = ', '.join(str(channel) for channel in ranked_channels)
-    to_write = "Channel rankings: " + to_write + "\n\n"
+    chan_write = ', '.join(str(channel) for channel in ranked_channels)
+    to_write = "Channel rankings: " + chan_write + "\n\n"
 
+    f = open(file, 'a')
     f.write(to_write)
+    f.close()
 
-    del [chann_time, dt_model, to_write]
-
+    del [chann_time, dt_model, chan_write, to_write, f]
 
     ## Perform RF With Channel Reduction
     #
@@ -207,18 +212,14 @@ for p in gen_user:
     #  be that with the lowest score as obtained from the channel ranking.
     #  -------------------------------------------------------------------------------------------------------------  #
 
-
     # Setup Variables for channel reduction
 
     if debug:
-        print("Setting up variables for channel reduction")
+        print("RF with channel reduction testing begins")
         chred_time = time.time()
 
-    scores = np.array([])               # Creating an array to hold the RF scores for each channel reduction
-    test_copy = np.array(test_data)     # Create a copy of the test features
-
-    if debug:
-        print("RF with channel reduction testing begins")
+    scores = np.array([])  # Creating an array to hold the RF scores for each channel reduction
+    test_copy = np.array(test_data)  # Create a copy of the test features
 
     for n in range(1, 32, 1):
 
@@ -235,47 +236,47 @@ for p in gen_user:
 
         ranked_channels = np.delete(ranked_channels, index)
 
-        if debug:
-            print(smote_data.shape)
-
         smote_data = np.delete(smote_data, index, axis=1)
         test_copy = np.delete(test_copy, index, axis=1)
 
         if debug:
-            print(smote_data.shape)
-
-        if debug:
             print("Starting RF testing with  " + str(32 - n) + " channels")
 
-        rf_model = ensemble.RandomForestClassifier()  # Create a RF model with worst channel removed
+        rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=split, max_samples=samples,
+                                                   max_depth=depth, max_features='auto', random_state=56,
+                                                   n_streams=1) # Create a RF model with worst channel removed
         rf_model.fit(smote_data, smote_labels)  # Fit the model using training data with all features
 
-        if debug:
-            print("Done fitting model")
-
         rf_pred = rf_model.predict(test_copy)  # Predicts class of validation data
-        np.append(scores, rf_model.score(test_copy, bin_test_labels))  # Gets the classification accuracy
+        score = rf_model.score(test_copy, bin_test_labels)
+
+        scores = np.append(scores, score)  # Gets the classification accuracy
 
         if debug:
             print("Done predicting data class")
             print("Execution time: %s seconds" % (time.time() - curRF_time))
 
     if debug:
-        print("Completed benchmark RF testing")
+        print("Completed channel reduction testing")
         print("Results: ")
         print(scores)
         print("Execution time: %s seconds\n\n" % (time.time() - chred_time))
 
-    all_results.append(scores)      # Saveaccuracy scores
+    all_results.append(scores)  # Save accuracy scores
 
-    to_write = ', '.join(str(acc) for acc in scores )
-    to_write = "Ranked performance: " + to_write + "\n\n"
-    f.write(to_write)               # Write accuracy scores to file
+    acc_write = ', '.join(str(acc) for acc in scores)
+    to_write = "Ranked performance: " + acc_write + "\n\n"
 
+    f = open(file, 'a')
+    f.write(to_write)  # Write accuracy scores to file
+    f.close()
 
-    del [smote_data, smote_labels, scores, test_copy, bin_test_labels, to_write, rf_model, lowest]   # Remove excess variables
+    print("Total time for participant: %s seconds \n" % (time.time() - par_time))
+
+    del [smote_data, smote_labels, scores, test_copy, bin_test_labels, acc_write, to_write, f, rf_model,
+         lowest, par_time]  # Remove excess variables
 
 if debug:
     print("Execution time: %s seconds" % (time.time() - start_time))
 
-f.close()                       # Close the file
+print(all_results)
