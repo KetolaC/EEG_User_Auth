@@ -7,6 +7,7 @@
 
 import re
 
+
 class analysis:
 
     def __init__(self, result_path, channel_key=None):
@@ -32,62 +33,59 @@ class analysis:
         for i in range(self._num_par):
             self._par_data.append([])
 
-        scores = re.findall(r': (.*)', result_data)        # Extracts only scores from text
+        scores = re.findall(r': (.*)', result_data)  # Extracts only scores from text
 
         ind = -1  # Get an index ready to keep track of participant
 
         for i in range(len(scores)):
 
-            if i % 3 == 0:                      # If benchmark score
-                ind = ind + 1                   # Increase index value by 1
-                temp = float(scores[i])         # Convert score from string to decimal
-                self._par_data[ind].append([temp])    # Save score to participant's list first index
-            elif i % 3 == 1:                    # If channel rankings
-                self._par_data[ind].append([])        # Save to 2nd index for participant
+            if i % 3 == 0:  # If benchmark score
+                ind = ind + 1  # Increase index value by 1
+                temp = float(scores[i])  # Convert score from string to decimal
+                self._par_data[ind].append([temp])  # Save score to participant's list first index
+            elif i % 3 == 1:  # If channel rankings
+                self._par_data[ind].append([])  # Save to 2nd index for participant
                 for num in scores[i].split(', '): self._par_data[ind][1].append(float(num))  # Save rankings as decimals
-            else:                               # If channel reductions
-                for num in scores[i].split(', '): self._par_data[ind][0].append(float(num))  # Add as decimals to first index
-
+            else:  # If channel reductions
+                for num in scores[i].split(', '): self._par_data[ind][0].append(
+                    float(num))  # Add as decimals to first index
 
     def accuracy(self):
         for par in self._par_data:
             return par[0]
 
+    def average(self):
+        avg = []
+        for c in range(self._num_chn):
+            
 
+        # for band in band_data:
+        #     band_avg = []  # Create a list to store the average accuracy each reduction
+        #     for channel in range(32):  # Go through all 32 channels
+        #         avg_acc = 0  # Variable to store the average accuracy
+        #         for i in range(12):  # Parse through the channel for all participants
+        #             avg_acc = band[i][0][channel] + avg_acc  # Tally up the accuracies
+        #
+        #         avg_acc = avg_acc / 12  # Get the average accuracy
+        #         band_avg.append(avg_acc)  # Append the average accuracy for the channel to the list
+        #
+        #     plt.plot(x_axis, band_avg, '-o', label=band_names[band_data.index(band)])  # Plot data
+        #
+        # plt.ylabel("Average Accuracy")  # Label the y-axis
+        # plt.xlabel("Channels Used")  # Label the x-axis
+        # plt.title("Average Accuracy Per Band")  # Add a title
+        # plt.legend(loc=4)  # Add a legend to the plot
+        # fname = "average_accuracy.png"  # Name for the plot savefile
+        # plt.savefig(fname)  # Save the plot
+        # plt.show()  # Create the plot
+        #
+        # del [band, band_avg, channel, avg_acc, i, fname]
 
-# band_data = []  # Saves all participants data for a band
-#
-# for band in band_options:
-#
-#     par_data = [list(), list(), list(), list(), list(), list(), list(), list(), list(), list(), list(),
-#                 list()]  # Creates a list with a list for each participant
-#
-#     # Extract the participants data
-#     scores = re.findall(r': (.*)', band)  # Extracts only scores from text
-#
-#     ind = -1  # Get an index ready to keep track of participant
-#
-#     for i in range(len(scores)):
-#
-#         if i % 3 == 0:                      # If benchmark score
-#             ind = ind + 1                   # Increase index value by 1
-#             temp = float(scores[i])         # Convert score from string to decimal
-#             par_data[ind].append([temp])    # Save score to participant's list first index
-#         elif i % 3 == 1:                    # If channel rankings
-#             par_data[ind].append([])        # Save to 2nd index for participant
-#             for num in scores[i].split(', '): par_data[ind][1].append(float(num))  # Save rankings as decimals
-#         else:                               # If channel reductions
-#             for num in scores[i].split(', '): par_data[ind][0].append(float(num))  # Add as decimals to first index
-#
-#     band_data.append(par_data)              # Save data to the band_data list
-#
-# del [par_data, scores, ind, i, temp, num]
 
 if __name__ == "__main__":
-
     import os
 
-    cwd = os.getcwd()                                       # Get the current working directory (cwd)
+    cwd = os.getcwd()  # Get the current working directory (cwd)
     all_data = "../Classification/Results/all_results.txt"  # Name of the file for all bands
 
     # all_bands = analysis(all_data, 1)                       # Test type identification
@@ -96,7 +94,7 @@ if __name__ == "__main__":
                  'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'Pz', 'P4', 'P8', 'PO9', 'O1', 'Oz', 'O2',
                  'PO10']  # The position of each channel in order
 
-    all_bands = analysis(all_data, placement)                 # Test correct inputs
+    all_bands = analysis(all_data, placement)  # Test correct inputs
 
     acc = all_bands.accuracy()
 
