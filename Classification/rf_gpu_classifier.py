@@ -1,30 +1,31 @@
 ## Import libraries
 
-from sklearn import ensemble as ensemblesk, feature_selection as fs
 from xgboost import XGBClassifier as xgb
-from cuml import ensemble
 from imblearn.over_sampling import SMOTE
+from cuml import ensemble
 import faulthandler
 import numpy as np
 import time
 import os
 
-faulthandler.enable()
+faulthandler.enable()   # Retrieves stack traceback if error occurs
 
 ## Setup initial variables for authentication
-start_time = time.time()
 
-debug = True  # Set debug = True to get debug messages in the console
+start_time = time.time()                            # The start time for the entire script
 
-gen_user = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # Set the genuine user
+debug = True                                        # Set debug = True to get debug messages in the console
 
-all_results = []
+gen_user = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # Set the options for genuine users
 
-## Setup a text file to write results to
+all_results = []                                    # List to track all the results
+
+## Setup text files
 
 cwd = os.getcwd()  # Get the current working directory (cwd)
 
-file = cwd + "/Results/gamma_results_timed.txt"
+file = cwd + "/Results/test_results_timed.txt"     # Filepath to the results
+log = cwd + "/Logs/test_log.txt"                   # Filepath to the log
 
 ## Import the .csv files for training data, validation data, and testing data
 #
@@ -35,9 +36,9 @@ file = cwd + "/Results/gamma_results_timed.txt"
 #  and TestingData.csv.
 #  -------------------------------------------------------------------------------------------------------------  #
 
-train_file = cwd + '/WAY_EEG_GAL_split_data/Gamma_TrainingData.csv'  # Get training data .csv path
-valid_file = cwd + '/WAY_EEG_GAL_split_data/Gamma_ValidationData.csv'  # Get validation data .csv path
-test_file = cwd + '/WAY_EEG_GAL_split_data/Gamma_TestingData.csv'  # Get testing data .csv path
+train_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_TrainingData.csv'     # Get training data .csv path
+valid_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_ValidationData.csv'   # Get validation data .csv path
+test_file = cwd + '/WAY_EEG_GAL_split_data/Alpha_TestingData.csv'       # Get testing data .csv path
 
 channels = (0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
             29, 30, 31, 32, 33)
@@ -69,39 +70,53 @@ del [cwd, train_file, valid_file, test_file, channels, train, valid, test]  # Re
 
 for p in gen_user:
 
-    par_time = time.time()
+    par_time = time.time()      # Track total time per participant
 
-    gen = p
+    all_results.append(p)       # Save the participant number to the results
+
+    to_write = "Participant " + str(p) + "\n\n"     # Write the participant number
 
     if debug:
-        print("Participant " + str(p) + "\n")
-
-    all_results.append(gen)
-
-    to_write = "Participant " + str(gen) + "\n\n"
+        print(to_write)
 
     f = open(file, 'a')
     f.write(to_write)
     f.close()
 
-    # Binerizing Data
+    l = open(log, 'a')
+    l.write(to_write)
+    l.close()
+
+    del [to_write, f, l]
+
+    ## Binerizing Data
     #
     # Binary labels are created to label the genuine samples as '1's and the imposter samples as '0's. This allows for
     # binary classification to be performed.
     #  -------------------------------------------------------------------------------------------------------------  #
 
-    bin_train_labels = np.empty_like(train_labels, dtype=int)
+    bin_time = time.time()
+
+    bin_train_labels = np.empty_like(train_labels, dtype=int)   # Create an empty numpy array
     bin_valid_labels = np.empty_like(valid_labels, dtype=int)
     bin_test_labels = np.empty_like(test_labels, dtype=int)
 
     for i in range(len(train_data)):
-        bin_train_labels[i] = 1 if train_labels[i] == gen else 0  # Create labels for training data
+        bin_train_labels[i] = 1 if train_labels[i] == p else 0  # Create labels for training data
 
     for i in range(len(valid_data)):
-        bin_valid_labels[i] = 1 if valid_labels[i] == gen else 0  # Create labels for validation data
-        bin_test_labels[i] = 1 if test_labels[i] == gen else 0  # Create labels for validation data
+        bin_valid_labels[i] = 1 if valid_labels[i] == p else 0  # Create labels for validation data
+        bin_test_labels[i] = 1 if test_labels[i] == p else 0  # Create labels for validation data
 
-    del [gen, to_write, f]
+    bin_time = time.time() - bin_time
+
+    log_write = "Binerization Time: " + str(bin_time) + "\n\n"
+
+    l = open(log, 'a')
+    l.write(log_write)
+    l.close()
+
+    del [bin_time, log_write, l]
 
     ## Channel Ranking
     #
@@ -117,22 +132,7 @@ for p in gen_user:
     xgb_model = xgb(n_estimators=100, n_jobs=-1, random_state=56, use_label_encoder=False)
     xgb_model.fit(train_data, bin_train_labels)
 
-    # rfe = fs.RFECV(estimator=ensemblesk.RandomForestClassifier(random_state=56, n_jobs=-1), min_features_to_select=32,
-    #                n_jobs=-1)
-    # rfe = rfe.fit(train_data, bin_train_labels)
-
     ranked_channels = xgb_model.feature_importances_
-
-    # dt_model = ensemblesk.ExtraTreesClassifier(n_jobs=16)   # Creates a dt classifier of 100 random decision trees
-    # dt_model.fit(train_data, bin_train_labels)                  # Fits the dt model with the upsampled training data
-    # ranked_channels = dt_model.feature_importances_
-
-    # print("Setting up model")
-    # chan_ranker = ensemblesk.RandomForestClassifier(random_state=56, n_jobs=-1)
-    # print("Fitting model")
-    # chan_ranker.fit(smote_data, smote_labels)
-    # print("Getting ranked channels")
-    # ranked_channels = chan_ranker.feature_importances_
 
     chann_time = time.time() - chann_time
     if debug:
@@ -143,15 +143,21 @@ for p in gen_user:
     all_results.append(ranked_channels)
 
     chan_write = ', '.join(str(channel) for channel in ranked_channels)
-    to_write = "Channel rankings: " + chan_write + "\nChannel Ranking Time: " + str(chann_time) + "\n\n"
+    f_write = "Channel rankings: " + chan_write + "\n\n"
 
     f = open(file, 'a')
-    f.write(to_write)
+    f.write(f_write)
     f.close()
 
-    del [chann_time, xgb_model, chan_write, to_write, f]
+    log_write = "Channel Ranking Time: " + str(chann_time) + "\n\n"
 
-    # Balancing the training data
+    l = open(log, 'a')
+    l.write(log_write)
+    l.close()
+
+    del [chann_time, xgb_model, chan_write, f_write, f, log_write, l]
+
+    ## Balancing the training data
     #
     #  Balancing is performing by upsampling data using SMOTE (Synthetic Minority
     #  Over-sampling Technique). The genuine user is selected from the list of
@@ -175,43 +181,64 @@ for p in gen_user:
         print("Balancing time: %s seconds" % smote_time)
         print("Data Size After SMOTE: " + str(smote_data.shape))
 
-    to_write = "Smote Upsampling Time: " + str(smote_time) + "\n\n"
+    log_write = "Smote Upsampling Time: " + str(smote_time) + "\n\n"
 
-    f = open(file, 'a')
-    f.write(to_write)
-    f.close()
+    l = open(log, 'a')
+    l.write(log_write)
+    l.close()
 
-    del [smote_time, smote_model, bin_train_labels]
+    del [smote_time, smote_model, bin_train_labels, log_write, l]
 
-    ## Train and validate the RF classifier with all features as a benchmark
+    ## Validate the RF classifier with all features
     #
     #  In this section an RF model is designed with different parameters. All combinations of these parameters are
-    #  trained with the training data, and validated with the validation data. The data used in his section
-    #  contains all the originally extracted features, and will be used as a benchmark to which the feature
-    #  reduction process will be compared.
+    #  trained with the training data, and validated with the validation data. This finds the hyperparameter combination
+    #  that works best
     #  -------------------------------------------------------------------------------------------------------------  #
 
     # Setup the possible parameters for the RF model
 
     n_trees = [50, 75]  # Number of trees
-    split = 0  # 0 = gini impurity
-    samples = 1.0  # Use all data for every tree
-    depth = 64
+    split = [0, 1]  # 0 = gini impurity
+    samples = [1.0, 0.9, 0.8]  # Use all data for every tree
+    depth = [16, 32, 64, 128]   # The tree
+
+    best = 0.0
+    params = []
+
+    for t in n_trees:
+        for s in split:
+            for n in samples:
+                for d in depth:
+                    val_model = ensemble.RandomForestClassifier(n_estimators=n, split_criterion=split, max_samples=n,
+                                               max_depth=d, max_features='auto', random_state=56,
+                                               n_streams=1)
+                    val_model.fit(smote_data, smote_labels)     # Fit to training data
+                    val_pred = val_model.predict(valid_data)  # Predicts class of validation data
+                    score = val_model.score(valid_data, bin_valid_labels)  # Gets the classification accuracy
+
+                    if score > best:
+                        best = score
+                        params = [t, s, n, d]
+
+    ## Benchmarking
+    #
+    #  This is where the initial 32 channel
+    #  -------------------------------------------------------------------------------------------------------------  #
 
     if debug:
         print("Starting benchmark RF testing")
 
     bench_time = time.time()
 
-    best = 0.0
-
-    rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=split, max_samples=samples,
-                                               max_depth=depth, max_features='auto', random_state=56,
+    rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=0, max_samples=1.0,
+                                               max_depth=64, max_features='auto', random_state=56,
                                                n_streams=1)  # Create a RF model
     rf_model.fit(smote_data, smote_labels)  # Fit the model using training data with all features
-
-    rf_pred = rf_model.predict(valid_data)  # Predicts class of validation data
-    score = rf_model.score(valid_data, bin_valid_labels)  # Gets the classification accuracy
+    b_pr_time = time.time()
+    rf_pred = rf_model.predict(test_data)  # Predicts class of test data
+    b_pr_time = time.time() - b_pr_time
+    score = rf_model.score(test_data, bin_test_labels)  # Gets the classification accuracy
 
     bench_time = time.time() - bench_time
 
@@ -224,13 +251,19 @@ for p in gen_user:
 
     all_results.append(score)
 
-    to_write = "Benchmark Score: " + str(score) + "\nBenchmarking Time: " + str(bench_time) + "\n\n"
+    to_write = "Benchmark Score: " + str(score) + "\nPrediction Time: " + str(b_pr_time) + "\n\n"
 
     f = open(file, 'a')
     f.write(to_write)
     f.close()
 
-    del [bench_time, bin_valid_labels, score, rf_model, to_write, f]
+    log_write = "Benchmarking Time: " + str(bench_time) + "\n\n"
+
+    l = open(log, 'a')
+    l.write(log_write)
+    l.close()
+
+    del [bench_time, bin_valid_labels, score, rf_model, to_write, f, log_write, l]
 
     ## Perform RF With Channel Reduction
     #
@@ -244,6 +277,10 @@ for p in gen_user:
     if debug:
         print("RF with channel reduction testing begins")
 
+    rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=split, max_samples=samples,
+                                               max_depth=depth, max_features='auto', random_state=56,
+                                               n_streams=1)  # Create a RF model
+
     chred_time = time.time()
 
     scores = np.array([])  # Creating an array to hold the RF scores for each channel reduction
@@ -252,7 +289,7 @@ for p in gen_user:
     rf_times = list()
     pr_times = list()
 
-    for n in range(1, 32, 1):
+    for n in range(1, 33, 1):
 
         curRF_time = time.time()
 
@@ -272,9 +309,9 @@ for p in gen_user:
         if debug:
             print("Starting RF testing with  " + str(32 - n) + " channels")
 
-        rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=split, max_samples=samples,
-                                                   max_depth=depth, max_features='auto', random_state=56,
-                                                   n_streams=1) # Create a RF model with worst channel removed
+        # rf_model = ensemble.RandomForestClassifier(n_estimators=75, split_criterion=split, max_samples=samples,
+        #                                            max_depth=depth, max_features='auto', random_state=56,
+        #                                            n_streams=1) # Create a RF model with worst channel removed
         rf_model.fit(smote_data, smote_labels)  # Fit the model using training data with all features
 
         pred_time = time.time()                 # Track the prediction time
@@ -313,7 +350,7 @@ for p in gen_user:
     rf_times = ', '.join(str(rf) for rf in rf_times)
     pr_times = ', '.join(str(pr) for pr in pr_times)
     to_write = "Ranked performance: " + acc_write + "\nTraining and Testing Times per Reduction: " + rf_times + \
-               "\nClassification Times" + pr_times + "\nOverall Ranking Time: " + str(chred_time) + \
+               "\nClassification Times: " + pr_times + "\nOverall Ranking Time: " + str(chred_time) + \
                "\n\nTotal Participant Time: " + str(par_time) + "\n\n"
 
 
@@ -331,13 +368,13 @@ print(all_results)
 
 whole_time = time.time() - start_time
 
-to_write = "Total Time: " + str(whole_time)
+log_write = "Total Time: " + str(whole_time)
 
-f = open(file, 'a')
-f.write(to_write)  # Write accuracy scores to file
-f.close()
+l = open(log, 'a')
+l.write(log_write)  # Write accuracy scores to file
+l.close()
 
 if debug:
     print("Execution time: %s seconds" % whole_time)
 
-    del [whole_time, start_time]
+del [whole_time, start_time]
