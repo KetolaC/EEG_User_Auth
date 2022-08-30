@@ -181,17 +181,11 @@ class analysis:
 if __name__ == "__main__":
 
     import os
+    import matplotlib.pyplot as plt
 
     cwd = os.getcwd()  # Get the current working directory (cwd)
 
     test_data = "example_timed.txt"   # Example results file for a timed system
-
-    # all_data = "../Classification/Results/all_results.txt"  # Name of the file for all bands
-    # theta_data = "../Classification/Results/theta_results.txt"  # Name of the file for theta band
-    # delta_data = "../Classification/Results/delta_results.txt"  # Name of the file for delta band
-    # alpha_data = "../Classification/Results/alpha_results.txt"  # Name of the file for alpha band
-    # beta_data = "../Classification/Results/beta_results.txt"  # Name of the file for beta band
-    # gamma_data = "../Classification/Results/gamma_results.txt"  # Name of the file for theta band
 
     placement = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7', 'C3', 'Cz', 'C4', 'T8',
                  'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'Pz', 'P4', 'P8', 'PO9', 'O1', 'Oz', 'O2',
@@ -204,39 +198,19 @@ if __name__ == "__main__":
     timing = test_an.average(gini=2)
 
     print(timing)
-    #
-    # all_bands = analysis(all_data, placement)  # Test correct inputs
-    #
-    # theta_band = analysis(theta_data, placement)
-    # delta_band = analysis(delta_data, placement)
-    # alpha_band = analysis(alpha_data, placement)
-    # beta_band = analysis(beta_data, placement)
-    # gamma_band = analysis(gamma_data, placement)
 
-    # sort = all_bands.sortByParticipant(theta_band, delta_band, alpha_band, beta_band, gamma_band, gini=0)
+    x_axis = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5,
+              4, 3, 2, 1]  # Labels for the x-axis
 
-    # print(sort)
+    plt.plot(x_axis, timing, '-o')  # Plot data
 
-    # acc = all_bands.accuracy()
-    # print(acc)
-    #
-    # gini = all_bands.giniImportance()
-    # print(gini)
-    #
-    # delta = all_bands.delta(acc)
-    # print(delta)
-    #
-    # print(all_bands._num_chn)
-    # avg = all_bands.average()
-    #
-    # print(avg)
-    #
-    # avg = all_bands.average(gini=1)
-    #
-    # print(avg)
-
-    # ranked = all_bands.rankChannels()
-    #
-    # print(ranked)
+    plt.ylabel("Average Time (s)")  # Label the y-axis
+    plt.xlabel("Channels Used")  # Label the x-axis
+    plt.title("Average Classifiction Time in Overall Band")  # Add a title
+    # plt.legend(loc=4)  # Add a legend to the plot
+    fname = "test_avg_time.png"  # Name for the plot savefile
+    plt.savefig(fname)  # Save the plot
+    plt.show()
 
 
+    
