@@ -45,10 +45,11 @@ class analysis:
 
         self._path = result_path                        # The filepath to the data
         self._key = channel_key                         # A key to label channels
-        self._num_chn = 0                               # The number of electrodes used
+        self._num_chn = None                            # The number of electrodes used
         self._par_data = []                             # The scores for every participant
         self._par = None                                # The label for each participant
-        self._num_par = 0                               # The total number of participants
+        self._num_par = None                            # The total number of participants
+        self._delta = []                                # The change between scores for channel reduction
         self.__readfile()                               # Read the contents of the provided file
         self.__setChannelParameters()                   # Determine the number of channels and channel key
 
@@ -60,28 +61,22 @@ class analysis:
 
         result_file = open(self._path, 'r')
         result_data = result_file.read()
-        self._par = re.findall('Participant.*$', result_data, re.MULTILINE)  # Extracts only scores from text
+        self._par = re.findall('Participant [0-9]*$', result_data, re.MULTILINE)  # Extract each participant
         self._num_par = len(self._par)
 
         for i in range(self._num_par):
             self._par_data.append([])
 
-        scores = re.findall(r': (.*)', result_data)     # Extracts only scores from text
-        ind = -1                                        # Get an index ready to keep track of participant
+        ch_rankings = re.findall(r'Channel rankings: (.*$)', result_data, re.MULTILINE)     # Extracts rankings
+        pr_rankings = re.findall(r'Ranked performance: (.*$)', result_data, re.MULTILINE)   # Extracts accuracies
+        cl_times = re.findall(r'Classification Times: (.*$)', result_data, re.MULTILINE)    # Extracts times
 
-        for i in range(len(scores)):
+        for i in range(self._num_par):
+            self._par_data[i].append([float(r) for r in pr_rankings[i].split(',')])
+            self._par_data[i].append([float(r) for r in ch_rankings[i].split(',')])
+            self._par_data[i].append([float(r) for r in cl_times[i].split(',')])
 
-            if i % 3 == 0:                              # If benchmark score
-                ind = ind + 1                           # Increase index value by 1
-                temp = float(scores[i])                 # Convert score from string to decimal
-                self._par_data[ind].append([temp])      # Save score to participant's list first index
-            elif i % 3 == 1:                            # If channel rankings
-                self._par_data[ind].append([])          # Save to 2nd index for participant
-                for num in scores[i].split(', '): self._par_data[ind][1].append(float(num))  # Save rankings as decimals
-            else:                                       # If channel reductions
-                for num in scores[i].split(', '): self._par_data[ind][0].append(
-                    float(num))                         # Add as decimals to first index
-
+        del [result_file, result_data, ch_rankings, pr_rankings, cl_times]
 
     def __setChannelParameters(self):
         """
@@ -96,10 +91,10 @@ class analysis:
             for n in range(1, self._num_chn + 1):
                 self._key.append('Channel ' + str(n))
 
-    def __getScore(self, gini=0):
+    def __getScore(self, score=0):
         par_score = list()                              # Create a list to store score
         for par in self._par_data:                      # Parse through each participant
-            par_score.append(par[gini])                 # Attach score
+            par_score.append(par[score])                 # Attach score
         return par_score                                # Return a list of scores for all participants
 
     def __str__(self):
@@ -119,16 +114,25 @@ class analysis:
       :return: A list of lists containing gini importance by participant
       """
 
-        return self.__getScore(gini=1)
+        return self.__getScore(score=1)
 
-    def delta(self, scores):
-        all_diff = []
-        diff = []
-        for l in scores:
-            for n in range(len(l) - 1):
-                diff.append(l[n+1]-l[n])
-            all_diff.append(diff)
-        return all_diff
+    def classTimes(self):
+        """
+      Retrieves the classification time for every participant for every channel reduction.\n
+      :return: A list of lists containing gini importance by participant
+      """
+
+        return self.__getScore(score=2)
+
+    def delta(self, score=0):
+
+        for p in range(self._num_par):
+            diff = []
+            for n in range(len(self._par_data[p][score]) - 1):
+                diff.append(self._par_data[p][score][n+1]-self._par_data[p][score][n])
+            self._delta.append(diff)
+
+        return self._delta
 
     def average(self, gini=0):
         """
@@ -148,12 +152,12 @@ class analysis:
 
         return avg
 
-    def sortByParticipant(self, *args, gini=0):
+    def sortByParticipant(self, *args, score=0):
         par_dic = _ParticipantDictionary.fromkeys(self._par, [])    # Create a participant dictionary
-        scores = [self.__getScore(gini=gini)]
+        scores = [self.__getScore(score=score)]
 
         for band in args:
-            scores.append(band.__getScore(gini=gini))
+            scores.append(band.__getScore(score=score))
 
         n = 0
 
@@ -180,30 +184,38 @@ if __name__ == "__main__":
 
     cwd = os.getcwd()  # Get the current working directory (cwd)
 
-    all_data = "../Classification/Results/all_results.txt"  # Name of the file for all bands
-    theta_data = "../Classification/Results/theta_results.txt"  # Name of the file for theta band
-    delta_data = "../Classification/Results/delta_results.txt"  # Name of the file for delta band
-    alpha_data = "../Classification/Results/alpha_results.txt"  # Name of the file for alpha band
-    beta_data = "../Classification/Results/beta_results.txt"  # Name of the file for beta band
-    gamma_data = "../Classification/Results/gamma_results.txt"  # Name of the file for theta band
+    test_data = "example_timed.txt"   # Example results file for a timed system
+
+    # all_data = "../Classification/Results/all_results.txt"  # Name of the file for all bands
+    # theta_data = "../Classification/Results/theta_results.txt"  # Name of the file for theta band
+    # delta_data = "../Classification/Results/delta_results.txt"  # Name of the file for delta band
+    # alpha_data = "../Classification/Results/alpha_results.txt"  # Name of the file for alpha band
+    # beta_data = "../Classification/Results/beta_results.txt"  # Name of the file for beta band
+    # gamma_data = "../Classification/Results/gamma_results.txt"  # Name of the file for theta band
 
     placement = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7', 'C3', 'Cz', 'C4', 'T8',
                  'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'Pz', 'P4', 'P8', 'PO9', 'O1', 'Oz', 'O2',
                  'PO10']  # The position of each channel in order
 
-    test2 = list(range(1, 33))
+    test_an = analysis(test_data, placement)    # Test analysis object
 
-    all_bands = analysis(all_data, placement)  # Test correct inputs
+    test_delta = test_an.delta(score=0)
 
-    theta_band = analysis(theta_data, placement)
-    delta_band = analysis(delta_data, placement)
-    alpha_band = analysis(alpha_data, placement)
-    beta_band = analysis(beta_data, placement)
-    gamma_band = analysis(gamma_data, placement)
+    timing = test_an.average(gini=2)
 
-    sort = all_bands.sortByParticipant(theta_band, delta_band, alpha_band, beta_band, gamma_band, gini=0)
+    print(timing)
+    #
+    # all_bands = analysis(all_data, placement)  # Test correct inputs
+    #
+    # theta_band = analysis(theta_data, placement)
+    # delta_band = analysis(delta_data, placement)
+    # alpha_band = analysis(alpha_data, placement)
+    # beta_band = analysis(beta_data, placement)
+    # gamma_band = analysis(gamma_data, placement)
 
-    print(sort)
+    # sort = all_bands.sortByParticipant(theta_band, delta_band, alpha_band, beta_band, gamma_band, gini=0)
+
+    # print(sort)
 
     # acc = all_bands.accuracy()
     # print(acc)
@@ -226,3 +238,5 @@ if __name__ == "__main__":
     # ranked = all_bands.rankChannels()
     #
     # print(ranked)
+
+
