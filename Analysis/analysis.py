@@ -6,6 +6,9 @@
 #######################################################################################################################
 
 import re
+import numpy
+import numpy as np
+
 
 class _ParticipantDictionary(dict):
 
@@ -68,11 +71,17 @@ class analysis:
             self._par_data.append([])
 
         ch_rankings = re.findall(r'Channel rankings: (.*$)', result_data, re.MULTILINE)     # Extracts rankings
+        bm_rankings = re.findall(r'Benchmark Score: (.*$)', result_data, re.MULTILINE)   # Benchmark accuracies
         pr_rankings = re.findall(r'Ranked performance: (.*$)', result_data, re.MULTILINE)   # Extracts accuracies
-        cl_times = re.findall(r'Classification Times: (.*$)', result_data, re.MULTILINE)    # Extracts times
+        b_cl_time = re.findall(r'Classification Time: (.*$)', result_data, re.MULTILINE)    # Benchmarking times
+        d_cl_times = re.findall(r'Classification Times: (.*$)', result_data, re.MULTILINE)    # Extracts times
+
+        acc_scores = [', '.join([bm_rankings[ind], pr_rankings[ind]]) for ind in range(len(pr_rankings))]
+        cl_times = [', '.join([b_cl_time[ind], d_cl_times[ind]]) for ind in range(len(d_cl_times))]
+
 
         for i in range(self._num_par):
-            self._par_data[i].append([float(r) for r in pr_rankings[i].split(',')])
+            self._par_data[i].append([float(r) for r in acc_scores[i].split(',')])
             self._par_data[i].append([float(r) for r in ch_rankings[i].split(',')])
             self._par_data[i].append([float(r) for r in cl_times[i].split(',')])
 
@@ -185,32 +194,61 @@ if __name__ == "__main__":
 
     cwd = os.getcwd()  # Get the current working directory (cwd)
 
-    test_data = "example_timed.txt"   # Example results file for a timed system
+    # test_data = "example_timed.txt"   # Example results file for a timed system
+
+    all_data = "../Classification/Results/all_results_timed.txt"  # Name of the file for all bands
+    theta_data = "../Classification/Results/theta_results_timed.txt"  # Name of the file for theta band
+    delta_data = "../Classification/Results/delta_results_timed.txt"  # Name of the file for delta band
+    alpha_data = "../Classification/Results/alpha_results_timed.txt"  # Name of the file for alpha band
+    beta_data = "../Classification/Results/beta_results_timed.txt"  # Name of the file for beta band
+    gamma_data = "../Classification/Results/gamma_results_timed.txt"  # Name of the file for theta band
 
     placement = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7', 'C3', 'Cz', 'C4', 'T8',
                  'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'Pz', 'P4', 'P8', 'PO9', 'O1', 'Oz', 'O2',
                  'PO10']  # The position of each channel in order
 
-    test_an = analysis(test_data, placement)    # Test analysis object
+    all_bands = analysis(all_data, placement)
+    theta_band = analysis(theta_data, placement)
+    delta_band = analysis(delta_data, placement)
+    alpha_band = analysis(alpha_data, placement)
+    beta_band = analysis(beta_data, placement)
+    gamma_band = analysis(gamma_data, placement)
 
-    test_delta = test_an.delta(score=0)
+    a_time = all_bands.classTimes()
 
-    timing = test_an.average(gini=2)
+    all_timing = all_bands.average(gini=0)
+    theta_timing = theta_band.average(gini=0)
+    delta_timing = delta_band.average(gini=0)
+    alpha_timing = alpha_band.average(gini=0)
+    beta_timing = beta_band.average(gini=0)
+    gamma_timing = gamma_band.average(gini=0)
 
-    print(timing)
+    avg_times = [all_timing, theta_timing, delta_timing, alpha_timing, beta_timing, gamma_timing]
 
     x_axis = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5,
               4, 3, 2, 1]  # Labels for the x-axis
 
-    plt.plot(x_axis, timing, '-o')  # Plot data
+    for i in avg_times:
+        std = np.std(i, ddof=1)
+        print(i)
+        print("32 channel accuracy:", i[0], ", 14 channel accuracy:", i[18], ", Statistically significant threshold:",
+              i[0]-0.015, ", Threshold met at: ", 32-i.index(list(filter(lambda j: j < i[0]-0.015, i))[0]),
+              ", 14 channels more than 1% difference: ", i[18]<i[0]-0.015)
 
-    plt.ylabel("Average Time (s)")  # Label the y-axis
-    plt.xlabel("Channels Used")  # Label the x-axis
-    plt.title("Average Classifiction Time in Overall Band")  # Add a title
-    # plt.legend(loc=4)  # Add a legend to the plot
-    fname = "test_avg_time.png"  # Name for the plot savefile
-    plt.savefig(fname)  # Save the plot
-    plt.show()
-
-
-    
+    # labels = ["All Bands", "Theta", "Delta", "Alpha", "Beta", "Gamma"]
+    #
+    # for band in avg_times:
+    #     plt.plot(x_axis, band, '-o', label=labels[avg_times.index(band)])  # Plot data
+    #     print(band)
+    #
+    # plt.ylabel("Average Time (s)")  # Label the y-axis
+    # plt.xlabel("Channels Used")  # Label the x-axis
+    # plt.title("Average Classifiction Time in Overall Band")  # Add a title
+    # plt.legend(loc=1)  # Add a legend to the plot
+    # fname = "test_avg_time.png"  # Name for the plot savefile
+    # plt.savefig(fname)  # Save the plot
+    # plt.show()
+    #
+    # placement = ['Fp1', 'Fp2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'FC5', 'FC1', 'FC2', 'FC6', 'T7', 'C3', 'Cz', 'C4', 'T8',
+    #              'TP9', 'CP5', 'CP1', 'CP2', 'CP6', 'TP10', 'P7', 'P3', 'Pz', 'P4', 'P8', 'PO9', 'O1', 'Oz', 'O2',
+    #              'PO10']  # The position of each channel in order
